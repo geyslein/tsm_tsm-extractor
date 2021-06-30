@@ -1,8 +1,8 @@
 import datetime
 
 
-class Value:
-    """Base class of value, may be a sqlalchemy model or some adapter class
+class Observation:
+    """Base class of observation, may be a sqlalchemy model or some adapter class
 
     Attributes:
         timestamp (datetime): Timestamp of the data point. The point in time, where the value was

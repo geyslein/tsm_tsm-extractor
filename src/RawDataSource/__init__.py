@@ -1,3 +1,3 @@
 import RawDataSource
-from . import RawDataSourceInterface
-from . import HttpRawDataSource
+from .RawDataSourceInterface import RawDataSourceInterface
+from .HttpRawDataSource import HttpRawDataSource

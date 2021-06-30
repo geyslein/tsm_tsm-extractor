@@ -1,7 +1,7 @@
 import click
 
 from .DatastoreInterface import DatastoreInterface
-from . import Value
+from . import Observation
 
 
 class MqttDatastore(DatastoreInterface):
@@ -12,5 +12,5 @@ class MqttDatastore(DatastoreInterface):
             fg="green"
         )
 
-    def store_value(self, value: Value) -> None:
+    def store_observation(self, observation: Observation) -> None:
         pass
