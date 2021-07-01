@@ -8,26 +8,28 @@ from Parser.ParserInterface import ParserInterface
 
 class AnotherCustomParser(ParserInterface):
 
-    def __init__(self):
-        super().__init__()
-        self.total = 100
-        self.current = 0
-
-    def report_progress(self):
-        return self.current / self.total
-
     def load_data(self):
         size = self.rawdata_source.temp_file.tell()
-        click.echo('Size of source file: {}'.format(size))
+        # @todo check general limits like maximum file size and maximum number of lines or
+        #  elements per job
+
+        # Determine the length/number of iterations the parser will do to enable progress reporting
+        # Maybe the number of lines in an csv or number of elements in xml raw data
+        self.set_progress_length(2000)
 
     def do_parse(self):
 
-        with click.progressbar(length=10000,
-                               label='Parsing raw data') as bar:
+        # For demo only!
+        demo_iterations = 200
+        # Number of simulated datastreams per iteration
+        demp_datastreams = 20
 
-            for n in range(0, 500):
-                ts = datetime.now()
-                for i in range(0, 20):
-                    v = Observation(ts, 23, "Mars", i)
-                    self.datastore.store_observation(v)
-                    bar.update(1)
+        # override progress length here again only for demo
+        self.set_progress_length(demo_iterations*demp_datastreams)
+
+        for n in range(0, demo_iterations):
+            ts = datetime.now()
+            for i in range(0, demp_datastreams):
+                v = Observation(ts, 23, self.rawdata_source.src, i)
+                self.datastore.store_observation(v)
+                self.update_progress()

@@ -14,10 +14,12 @@ metadata = Base.metadata
 class Observation(Base):
     __tablename__ = 'observation'
     __table_args__ = (
-        UniqueConstraint('result_time', 'datastream_id'),
+        UniqueConstraint('datastream_id', 'result_time'),
     )
 
-    id = Column(BigInteger, primary_key=True, server_default=text("nextval('observation_id_seq'::regclass)"))
+    id = Column(BigInteger, primary_key=True, server_default=text(
+        "nextval('observation_id_seq'::regclass)"
+    ))
     phenomenon_time_start = Column(DateTime(True))
     phenomenon_time_end = Column(DateTime(True))
     result_time = Column(DateTime(True), nullable=False)
@@ -33,8 +35,9 @@ class Observation(Base):
     valid_time_start = Column(DateTime(True))
     valid_time_end = Column(DateTime(True))
     parameters = Column(JSONB(astext_type=Text()))
-    datastream_id = Column(ForeignKey(Datastream.id, deferrable=True, initially='DEFERRED'),
-                           nullable=False,
-                           index=True)
+    datastream_id = Column(
+        ForeignKey(Datastream.id, deferrable=True, initially='DEFERRED'),
+        nullable=False, index=True
+    )
 
     datastream = relationship(Datastream)

@@ -14,8 +14,8 @@ import RawDataSource
 )
 @click.option(
     '-d', '--device-id', 'device_id',
-    help='ID or UUID of the device (or "thing") which generated the raw data',
-    required=True, type=click.INT
+    help='UUID of the device (or "thing") which generated the raw data',
+    required=True, type=click.UUID
 )
 @click.option(
     '-t', '--target-uri', 'target_uri',
@@ -40,6 +40,7 @@ def parse(parser_type, target_uri, source_uri, device_id):
     parser.set_datastore(datastore)
     # Load the source file
     source = RawDataSource.HttpRawDataSource(source_uri)
+    # Equip the parser with the raw data source object
     parser.set_rawdata_source(source)
     # Load the data into the parser
     parser.load_data()

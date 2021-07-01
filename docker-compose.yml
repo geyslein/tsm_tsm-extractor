@@ -1,0 +1,23 @@
+version: '3.7'
+
+services:
+  app:
+    build: .
+    volumes:
+      - './src:/home/appuser/app/src'
+    environment:
+      - DATABASE_URL=psql://postgres:postgres@db:5432/postgres
+    depends_on:
+      - db
+    entrypoint: python
+    command: -c exit
+
+  db:
+    image: postgres:12-alpine
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+    - ./src/Datastore/SqlAlchemy/Sql/:/docker-entrypoint-initdb.d/

@@ -35,7 +35,9 @@ class SqlAlchemyDatastore(DatastoreInterface):
             err=True,
             fg="green"
         )
-        self.sqla_thing = self.session.query(Thing).filter(Thing.id == self.device_id).first()
+        self.sqla_thing = self.session.query(Thing).filter(
+            Thing.uuid == str(self.device_id)
+        ).first()
 
     def store_observation(self, observation: Observation) -> None:
 
@@ -46,7 +48,8 @@ class SqlAlchemyDatastore(DatastoreInterface):
 
         sqla_obs = SqlaObservation(
             result_time=observation.timestamp, result_type=1,
-            result_number=observation.value, datastream=sqla_datastream
+            result_number=observation.value, datastream=sqla_datastream,
+            parameters={"origin": observation.origin}
         )
 
         self.chunk.append(sqla_obs)
@@ -54,24 +57,15 @@ class SqlAlchemyDatastore(DatastoreInterface):
         if self.current_chunk_idx % CHUNK_SIZE == 0:
             self.insert_commit_chunk()
 
-        # self.session.add(sqla_obs)
-        # self.session.commit()
-
-        # click.secho('{}/{}: {} {}'.format(
-        #     self.device_id, observation.position,
-        #     observation.timestamp,
-        #     observation.value
-        # ), fg='green')
-
     def fetch_or_create_datastream(self, observation):
 
         sqla_datastream = self.session.query(Datastream).join(Thing).filter(
-            Datastream.properties['position'].as_integer() == observation.position
+            Datastream.position == str(observation.position)
         ).first()
 
         if sqla_datastream is None:
             sqla_datastream = Datastream(
-                thing=self.sqla_thing, properties={'position': observation.position},
+                thing=self.sqla_thing, position=observation.position,
                 name='{}/{}'.format(self.sqla_thing.name, observation.position)
             )
             self.session.add(sqla_datastream)
@@ -84,9 +78,6 @@ class SqlAlchemyDatastore(DatastoreInterface):
             self.chunk.clear()
             self.session.flush()
             self.session.commit()
-            # click.echo('Flushed chunk number {}.'.format(
-            #     int(self.current_chunk_idx/CHUNK_SIZE)
-            # ), err=True)
 
     def finalize(self):
         # insert last chunk
