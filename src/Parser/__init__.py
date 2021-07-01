@@ -1,5 +1,5 @@
 import Parser
-from . import ParserInterface
+from .ParserInterface import ParserInterface
 from .MyCustomParser import MyCustomParser
 from .AnotherCustomParser import AnotherCustomParser
 
