@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from .DatastoreInterface import DatastoreInterface
 from . import Observation
 from .SqlAlchemy.Model import Thing, Datastream
-from .SqlAlchemy.Model.Observation import Observation as SqlaObservation
+from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, ResultType
 
 CHUNK_SIZE = 1000
 
@@ -49,7 +49,7 @@ class SqlAlchemyDatastore(DatastoreInterface):
         sqla_datastream = self.fetch_or_create_datastream(observation)
 
         sqla_obs = SqlaObservation(
-            result_time=observation.timestamp, result_type=1,
+            result_time=observation.timestamp, result_type=ResultType.Number,
             result_number=observation.value, datastream=sqla_datastream,
             parameters={"origin": observation.origin}
         )
@@ -71,7 +71,8 @@ class SqlAlchemyDatastore(DatastoreInterface):
 
         if sqla_datastream is None:
             sqla_datastream = Datastream(
-                thing=self.sqla_thing, position=observation.position,
+                thing=self.sqla_thing,
+                position=observation.position,
                 name='{}/{}'.format(self.sqla_thing.name, observation.position)
             )
             self.session.add(sqla_datastream)
@@ -89,14 +90,9 @@ class SqlAlchemyDatastore(DatastoreInterface):
         # insert last chunk
         self.insert_commit_chunk()
 
-        click.echo('Doing final commit.', err=True)
-        self.session.commit()
-
-        click.echo('Pushed {} new observations to database.'.format(self.current_chunk_idx), err=True)
+        click.echo('Pushed {} new observations to database.'.format(
+            self.current_chunk_idx), err=True
+        )
 
         click.echo('Close database session.', err=True)
         self.session.close()
-
-    def __del__(self):
-        pass
-
