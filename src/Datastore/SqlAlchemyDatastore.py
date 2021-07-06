@@ -20,6 +20,9 @@ class SqlAlchemyDatastore(DatastoreInterface):
         self.chunk = []
         self.current_chunk_idx = 0
 
+    def get_parser_parameters(self, parser_type: str) -> dict:
+        return self.sqla_thing.get_parser_parameters(parser_type)
+
     def initiate_connection(self) -> None:
         click.secho(
             'Connecting to sqlalchemy supported database "{}"'.format(self.uri),

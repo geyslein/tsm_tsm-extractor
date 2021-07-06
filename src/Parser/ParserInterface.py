@@ -27,6 +27,10 @@ class ParserInterface(ABC):
     def update_progress(self, steps=1):
         self.progress_bar.update(steps)
 
+    @staticmethod
+    def max_elements():
+        return MAX_ELEMENTS
+
     @abstractmethod
     def do_parse(self):
         raise NotImplementedError

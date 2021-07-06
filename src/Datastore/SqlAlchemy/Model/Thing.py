@@ -17,3 +17,19 @@ class Thing(Base):
     uuid = Column(UUID, nullable=False, unique=True)
     description = Column(Text)
     properties = Column(JSONB(astext_type=Text()))
+
+    def get_parser_parameters(self, parser_type: str) -> dict:
+        try:
+            for parser in self.properties.get('parsers'):
+                if parser.get('type') == parser_type:
+                    return parser.get('settings')
+        except TypeError:
+            pass  # when there is no "parsers" array in the properties json object
+
+        raise Exception(
+            'Thing "{}" (UUID: {}) does not provide settings for parser type "{}"'.format(
+                self.name,
+                self.uuid,
+                parser_type
+            )
+        )
