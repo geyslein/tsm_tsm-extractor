@@ -57,6 +57,10 @@ class SqlAlchemyDatastore(DatastoreInterface):
         if self.current_chunk_idx % CHUNK_SIZE == 0:
             self.insert_commit_chunk()
 
+    def store_observations(self, observations: [Observation]) -> None:
+        for i in observations:
+            self.store_observation(i)
+
     def fetch_or_create_datastream(self, observation):
 
         sqla_datastream = self.session.query(Datastream).join(Thing).filter(

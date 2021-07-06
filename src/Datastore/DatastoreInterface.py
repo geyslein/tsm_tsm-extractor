@@ -24,6 +24,11 @@ class DatastoreInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def store_observations(self, observations: [Observation]) -> None:
+        """Save a bunch of observations to the datastore"""
+        raise NotImplementedError
+
+    @abstractmethod
     def finalize(self):
         """Do last things to do, e.g. commit to database."""
         raise NotImplementedError

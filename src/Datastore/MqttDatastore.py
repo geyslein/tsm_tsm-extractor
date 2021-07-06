@@ -14,3 +14,6 @@ class MqttDatastore(DatastoreInterface):
 
     def store_observation(self, observation: Observation) -> None:
         pass
+
+    def store_observations(self, observations: [Observation]) -> None:
+        raise NotImplementedError
