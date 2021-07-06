@@ -17,7 +17,6 @@ class SqlAlchemyDatastore(DatastoreInterface):
 
     def __init__(self, uri: str, device_id: int):
         super().__init__(uri, device_id)
-        # self.session = None
         self.chunk = []
         self.current_chunk_idx = 0
 

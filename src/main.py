@@ -4,6 +4,8 @@ import click
 import Datastore
 import Parser
 import RawDataSource
+from Datastore import DatastoreInterface
+from RawDataSource import RawDataSourceInterface
 
 
 @click.command()
@@ -31,19 +33,12 @@ import RawDataSource
 )
 def parse(parser_type, target_uri, source_uri, device_id):
     """Parse data of a raw data source to a data store."""
-
-    # Dynamically load the parser
-    parser = load_parser(parser_type)
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
-    # Equip the parser with a datastore
-    parser.set_datastore(datastore)
     # Load the source file
     source = RawDataSource.HttpRawDataSource(source_uri)
-    # Equip the parser with the raw data source object
-    parser.set_rawdata_source(source)
-    # Load the data into the parser
-    parser.load_data()
+    # Dynamically load the parser
+    parser = load_parser(parser_type, source, datastore)
     # Do the parsing work
     parser.do_parse()
     # Finalize the datastore connections
@@ -62,9 +57,12 @@ def load_datastore(target_uri: str, device_id: int) -> Datastore.DatastoreInterf
     return datastore
 
 
-def load_parser(parser_type: str) -> Parser.ParserInterface:
+def load_parser(
+        parser_type: str,
+        datasource: RawDataSourceInterface, datastore:
+        DatastoreInterface) -> Parser.ParserInterface:
     try:
-        parser = Parser.get_parser(parser_type)
+        parser = Parser.get_parser(parser_type, datasource, datastore)
     except (NotImplementedError, AttributeError) as e:
         raise click.BadParameter(
             'Parser "{}" not (completely) implemented yet?'.format(parser_type)
