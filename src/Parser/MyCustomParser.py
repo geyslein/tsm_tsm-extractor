@@ -7,7 +7,7 @@ from Parser.ParserInterface import ParserInterface
 
 class MyCustomParser(ParserInterface):
 
-    def report_progress(self):
+    def check_max_elements(self):
         pass
 
     def do_parse(self):

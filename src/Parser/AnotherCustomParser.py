@@ -1,9 +1,7 @@
 from datetime import datetime
-
-import click
-
-from Datastore import MqttDatastore, Observation
-from Parser.ParserInterface import ParserInterface
+from Datastore import Observation, SqlAlchemyDatastore
+from Parser.ParserInterface import ParserInterface, MaximumNumberOfElementsError
+from RawDataSource import RawDataSourceInterface
 
 
 class AnotherCustomParser(ParserInterface):
@@ -23,9 +21,10 @@ class AnotherCustomParser(ParserInterface):
         # pick out the parser settings from the datadstores thing when using SqlAlchemyDatastore
         self.parser_settings = self.datastore.get_parser_parameters(self.__class__.__name__)
 
-        # Determine the length/number of iterations the parser will do to enable progress reporting
-        # Maybe the number of lines in an csv or number of elements in xml raw data
-        self.set_progress_length(2000)
+    def check_max_elements(self):
+
+        if self.number_of_values > self.max_elements():
+            raise MaximumNumberOfElementsError(self.number_of_values)
 
     def do_parse(self):
 
