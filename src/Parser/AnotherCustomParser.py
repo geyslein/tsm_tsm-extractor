@@ -12,15 +12,15 @@ class AnotherCustomParser(AbstractParser):
         self.datastore: SqlAlchemyDatastore
         self.parser_settings: {}
 
-        super().__init__(rawdata_source, datastore)
-        # pick out the parser settings from the datadstores thing when using SqlAlchemyDatastore
-        self.parser_settings = self.datastore.get_parser_parameters(self.__class__.__name__)
-
         # For demo only!
         self.demo_iterations = 200
         # Number of simulated datastreams per iteration
         self.demo_datastreams = 20
-        self.number_of_values = self.demo_iterations*self.demo_datastreams
+        self.number_of_values = self.demo_iterations * self.demo_datastreams
+
+        super().__init__(rawdata_source, datastore)
+        # pick out the parser settings from the datadstores thing when using SqlAlchemyDatastore
+        self.parser_settings = self.datastore.get_parser_parameters(self.__class__.__name__)
 
     def check_max_elements(self):
 
