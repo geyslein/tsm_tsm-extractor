@@ -9,8 +9,8 @@ class AbstractDatastore(ABC):
     device_id: uuid.uuid4
 
     def __init__(self, uri: str, device_id: uuid.uuid4) -> None:
-        self.uri = uri
-        self.device_id = device_id
+        self.uri: str = uri
+        self.device_id: str = device_id
         self.initiate_connection()
 
     @abstractmethod

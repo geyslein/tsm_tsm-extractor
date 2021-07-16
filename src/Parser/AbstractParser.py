@@ -12,8 +12,8 @@ MAX_ELEMENTS = 100000
 class AbstractParser(ABC):
 
     def __init__(self, rawdata_source: AbstractRawDataSource, datastore: AbstractDatastore):
-        self.datastore = datastore
-        self.rawdata_source = rawdata_source
+        self.datastore: AbstractDatastore = datastore
+        self.rawdata_source: AbstractRawDataSource = rawdata_source
         self.progress = click.progressbar(length=0, show_pos=True, label='Parsing raw data')
         self.check_max_elements()
 

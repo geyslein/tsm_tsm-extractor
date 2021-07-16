@@ -8,9 +8,9 @@ MAX_FILE_SIZE = 1000*1000*32  # Maximum file size is 32M
 
 class AbstractRawDataSource(ABC):
     def __init__(self, src: str):
-        self.src = src
+        self.src: str = src
         # Keep 32M in memory before writing to disk
-        self.temp_file = tempfile.SpooledTemporaryFile(max_size=1024*1024*32)
+        self.temp_file: tempfile = tempfile.SpooledTemporaryFile(max_size=1024*1024*32)
         self.fetch_file()
         self.check_max_file_size()
 
