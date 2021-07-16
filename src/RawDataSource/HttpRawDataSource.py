@@ -4,10 +4,10 @@ import urllib.request
 
 import humanfriendly
 
-from RawDataSource.RawDataSourceInterface import RawDataSourceInterface
+from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 
 
-class HttpRawDataSource(RawDataSourceInterface):
+class HttpRawDataSource(AbstractRawDataSource):
 
     def fetch_file(self):
         with urllib.request.urlopen(self.src) as response:

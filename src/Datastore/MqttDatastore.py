@@ -1,10 +1,10 @@
 import click
 
-from .DatastoreInterface import DatastoreInterface
+from .AbstractDatastore import AbstractDatastore
 from . import Observation
 
 
-class MqttDatastore(DatastoreInterface):
+class MqttDatastore(AbstractDatastore):
     def initiate_connection(self) -> None:
         click.secho(
             'Setup MQTT datastore connection to "{}"'.format(self.uri),

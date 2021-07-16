@@ -1,15 +1,15 @@
 from datetime import datetime
 from Datastore import Observation, SqlAlchemyDatastore
-from Parser.ParserInterface import ParserInterface, MaximumNumberOfElementsError
-from RawDataSource import RawDataSourceInterface
+from Parser.AbstractParser import AbstractParser, MaximumNumberOfElementsError
+from RawDataSource import AbstractRawDataSource
 
 
-class AnotherCustomParser(ParserInterface):
+class AnotherCustomParser(AbstractParser):
 
     datastore: SqlAlchemyDatastore
     parser_settings: {}
 
-    def __init__(self, rawdata_source: RawDataSourceInterface, datastore: SqlAlchemyDatastore):
+    def __init__(self, rawdata_source: AbstractRawDataSource, datastore: SqlAlchemyDatastore):
 
         # For demo only!
         self.demo_iterations = 200

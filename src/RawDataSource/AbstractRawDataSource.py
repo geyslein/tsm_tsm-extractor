@@ -6,7 +6,7 @@ import humanfriendly
 MAX_FILE_SIZE = 1000*1000*32  # Maximum file size is 32M
 
 
-class RawDataSourceInterface(ABC):
+class AbstractRawDataSource(ABC):
     def __init__(self, src: str):
         self.src = src
         # Keep 32M in memory before writing to disk

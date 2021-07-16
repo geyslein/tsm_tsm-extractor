@@ -2,7 +2,7 @@ import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from .DatastoreInterface import DatastoreInterface
+from .AbstractDatastore import AbstractDatastore
 from . import Observation
 from .SqlAlchemy.Model import Thing, Datastream
 from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, ResultType
@@ -10,7 +10,7 @@ from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, Result
 CHUNK_SIZE = 1000
 
 
-class SqlAlchemyDatastore(DatastoreInterface):
+class SqlAlchemyDatastore(AbstractDatastore):
 
     session: Session
     sqla_thing: Thing

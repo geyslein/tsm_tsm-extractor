@@ -4,10 +4,10 @@ import uuid
 from .SqlAlchemyDatastore import SqlAlchemyDatastore
 from .MqttDatastore import MqttDatastore
 from .Observation import Observation
-from .DatastoreInterface import DatastoreInterface
+from .AbstractDatastore import AbstractDatastore
 
 
-def get_datastore(uri: str, device_id: int) -> DatastoreInterface:
+def get_datastore(uri: str, device_id: int) -> AbstractDatastore:
     datastore = None
 
     # Postgres uri

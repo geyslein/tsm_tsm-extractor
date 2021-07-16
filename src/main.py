@@ -4,8 +4,8 @@ import click
 import Datastore
 import Parser
 import RawDataSource
-from Datastore import DatastoreInterface
-from RawDataSource import RawDataSourceInterface
+from Datastore import AbstractDatastore
+from RawDataSource import AbstractRawDataSource
 
 
 @click.command()
@@ -47,7 +47,7 @@ def parse(parser_type, target_uri, source_uri, device_id):
     click.echo('😁')
 
 
-def load_datastore(target_uri: str, device_id: int) -> Datastore.DatastoreInterface:
+def load_datastore(target_uri: str, device_id: int) -> Datastore.AbstractDatastore:
     try:
         datastore = Datastore.get_datastore(target_uri, device_id)
     except (NotImplementedError) as e:
@@ -59,8 +59,8 @@ def load_datastore(target_uri: str, device_id: int) -> Datastore.DatastoreInterf
 
 def load_parser(
         parser_type: str,
-        datasource: RawDataSourceInterface, datastore:
-        DatastoreInterface) -> Parser.ParserInterface:
+        datasource: AbstractRawDataSource, datastore:
+        AbstractDatastore) -> Parser.AbstractParser:
     try:
         parser = Parser.get_parser(parser_type, datasource, datastore)
     except (NotImplementedError, AttributeError) as e:
@@ -80,13 +80,13 @@ def version():
 def list_available():
     """Display available datastore, parser and raw data source types."""
     click.secho('Datastore types', bg='green')
-    for n in [cls.__name__ for cls in Datastore.DatastoreInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in Datastore.AbstractDatastore.__subclasses__()]:
         click.echo('\t{}'.format(n))
     click.secho('Parser types', bg='green')
-    for n in [cls.__name__ for cls in Parser.ParserInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in Parser.AbstractParser.__subclasses__()]:
         click.echo('\t{}'.format(n))
     click.secho('Raw data source types', bg='green')
-    for n in [cls.__name__ for cls in RawDataSource.RawDataSourceInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in RawDataSource.AbstractRawDataSource.__subclasses__()]:
         click.echo('\t{}'.format(n))
 
 

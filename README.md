@@ -11,12 +11,6 @@ docker-compose run app main.py parse -p AnotherCustomParser -t postgresql://post
 
 # @TODO
 
-- [ ] Where optional parser arguments (like "delimter", "timestamp
-      fromat" and so on) should come from?
-  - JSON Object as command line parameter? Then the scheduler has to
-    manage this
-  - Or querying the DSM backend? Then we have do add another component
-  - Current favorite: Get them from thing properties (JSON)
 - [ ] Naming: Maybe tsm-ingest-dispatcher is better?
 - [ ] What about the data model changes from FROST STA (e.g. "position")
 - [ ] Strictness: What to do with violated unique constraints, for

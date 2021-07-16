@@ -1,10 +1,10 @@
 import Datastore
 # import numpy as np
 from datetime import datetime
-from Parser.ParserInterface import ParserInterface
+from Parser.AbstractParser import AbstractParser
 
 
-class MyCustomParser(ParserInterface):
+class MyCustomParser(AbstractParser):
 
     def check_max_elements(self):
         pass

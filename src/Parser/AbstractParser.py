@@ -3,29 +3,27 @@ from abc import abstractmethod, ABC
 import click
 
 import RawDataSource
-from Datastore import DatastoreInterface
-from RawDataSource import RawDataSourceInterface
+from Datastore import AbstractDatastore
+from RawDataSource import AbstractRawDataSource
 
 MAX_ELEMENTS = 100000
 
 
-class ParserInterface(ABC):
+class AbstractParser(ABC):
 
-    rawdata_source: RawDataSource.RawDataSourceInterface
-
-    def __init__(self, rawdata_source: RawDataSourceInterface, datastore: DatastoreInterface):
+    def __init__(self, rawdata_source: AbstractRawDataSource, datastore: AbstractDatastore):
         self.datastore = datastore
         self.rawdata_source = rawdata_source
-        self.progress_bar = click.progressbar(length=0, show_pos=True, label='Parsing raw data')
+        self.progress = click.progressbar(length=0, show_pos=True, label='Parsing raw data')
         self.check_max_elements()
 
     def set_progress_length(self, length: int):
-        self.progress_bar.length = length
+        self.progress.length = length
         # Tune number of updates so only five percent steps are reported
-        self.progress_bar.update_min_steps = length / 20
+        self.progress.update_min_steps = length / 20
 
     def update_progress(self, steps=1):
-        self.progress_bar.update(steps)
+        self.progress.update(steps)
 
     @staticmethod
     def max_elements():

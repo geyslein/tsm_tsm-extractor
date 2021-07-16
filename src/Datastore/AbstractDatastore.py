@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from . import Observation
 
 
-class DatastoreInterface(ABC):
+class AbstractDatastore(ABC):
 
     device_id: uuid.uuid4
 
@@ -15,12 +15,7 @@ class DatastoreInterface(ABC):
 
     @abstractmethod
     def initiate_connection(self) -> None:
-        """Connect to the databse or instantiate http classes"""
-        raise NotImplementedError
-
-    @abstractmethod
-    def store_observation(self, observation: Observation) -> None:
-        """Save a new value to the datastore"""
+        """Connect to the database or instantiate http classes"""
         raise NotImplementedError
 
     @abstractmethod
