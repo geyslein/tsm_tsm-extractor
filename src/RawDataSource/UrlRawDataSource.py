@@ -7,9 +7,9 @@ import humanfriendly
 from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 
 
-class HttpRawDataSource(AbstractRawDataSource):
+class UrlRawDataSource(AbstractRawDataSource):
 
-    def fetch_file(self):
+    def fetch(self):
         with urllib.request.urlopen(self.src) as response:
             shutil.copyfileobj(response, self.temp_file)
             click.secho(

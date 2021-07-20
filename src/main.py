@@ -36,7 +36,7 @@ def parse(parser_type, target_uri, source_uri, device_id):
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
     # Load the source file
-    source = RawDataSource.HttpRawDataSource(source_uri)
+    source = RawDataSource.UrlRawDataSource(source_uri)
     # Dynamically load the parser
     parser = load_parser(parser_type, source, datastore)
     # Do the parsing work

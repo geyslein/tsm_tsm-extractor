@@ -11,11 +11,11 @@ class AbstractRawDataSource(ABC):
         self.src: str = src
         # Keep 32M in memory before writing to disk
         self.temp_file: tempfile = tempfile.SpooledTemporaryFile(max_size=1024*1024*32)
-        self.fetch_file()
+        self.fetch()
         self.check_max_file_size()
 
     @abstractmethod
-    def fetch_file(self):
+    def fetch(self):
         """Load file and copy it to self.temp_file"""
         raise NotImplementedError
 
