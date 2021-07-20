@@ -1,13 +1,12 @@
-import click
 import Datastore
 # import numpy as np
 from datetime import datetime
-from Parser.ParserInterface import ParserInterface
+from Parser.AbstractParser import AbstractParser
 
 
-class MyCustomParser(ParserInterface):
+class MyCustomParser(AbstractParser):
 
-    def report_progress(self):
+    def check_max_elements(self):
         pass
 
     def do_parse(self):
@@ -17,13 +16,14 @@ class MyCustomParser(ParserInterface):
         dataset = [{
             "datetime": datetime.now(),
             "value": 23,
-            "origin": "todo - get from load_data?",
+            "origin": self.rawdata_source.src,
             "position": 42
         }]
 
         for item in dataset:
-            v = Datastore.Observation(item["datetime"], item["value"], item["origin"], item["position"])
+            v = Datastore.Observation(
+                item["datetime"],
+                item["value"],
+                item["origin"], item["position"]
+            )
             self.datastore.store_observation(v)
-
-    def load_data(self):
-        click.echo('Load data from somewhere')

@@ -4,6 +4,8 @@ import click
 import Datastore
 import Parser
 import RawDataSource
+from Datastore import AbstractDatastore
+from RawDataSource import AbstractRawDataSource
 
 
 @click.command()
@@ -31,19 +33,12 @@ import RawDataSource
 )
 def parse(parser_type, target_uri, source_uri, device_id):
     """Parse data of a raw data source to a data store."""
-
-    # Dynamically load the parser
-    parser = load_parser(parser_type)
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
-    # Equip the parser with a datastore
-    parser.set_datastore(datastore)
     # Load the source file
-    source = RawDataSource.HttpRawDataSource(source_uri)
-    # Equip the parser with the raw data source object
-    parser.set_rawdata_source(source)
-    # Load the data into the parser
-    parser.load_data()
+    source = RawDataSource.UrlRawDataSource(source_uri)
+    # Dynamically load the parser
+    parser = load_parser(parser_type, source, datastore)
     # Do the parsing work
     parser.do_parse()
     # Finalize the datastore connections
@@ -52,7 +47,7 @@ def parse(parser_type, target_uri, source_uri, device_id):
     click.echo('😁')
 
 
-def load_datastore(target_uri: str, device_id: int) -> Datastore.DatastoreInterface:
+def load_datastore(target_uri: str, device_id: int) -> Datastore.AbstractDatastore:
     try:
         datastore = Datastore.get_datastore(target_uri, device_id)
     except (NotImplementedError) as e:
@@ -62,9 +57,12 @@ def load_datastore(target_uri: str, device_id: int) -> Datastore.DatastoreInterf
     return datastore
 
 
-def load_parser(parser_type: str) -> Parser.ParserInterface:
+def load_parser(
+        parser_type: str,
+        datasource: AbstractRawDataSource, datastore:
+        AbstractDatastore) -> Parser.AbstractParser:
     try:
-        parser = Parser.get_parser(parser_type)
+        parser = Parser.get_parser(parser_type, datasource, datastore)
     except (NotImplementedError, AttributeError) as e:
         raise click.BadParameter(
             'Parser "{}" not (completely) implemented yet?'.format(parser_type)
@@ -82,13 +80,13 @@ def version():
 def list_available():
     """Display available datastore, parser and raw data source types."""
     click.secho('Datastore types', bg='green')
-    for n in [cls.__name__ for cls in Datastore.DatastoreInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in Datastore.AbstractDatastore.__subclasses__()]:
         click.echo('\t{}'.format(n))
     click.secho('Parser types', bg='green')
-    for n in [cls.__name__ for cls in Parser.ParserInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in Parser.AbstractParser.__subclasses__()]:
         click.echo('\t{}'.format(n))
     click.secho('Raw data source types', bg='green')
-    for n in [cls.__name__ for cls in RawDataSource.RawDataSourceInterface.__subclasses__()]:
+    for n in [cls.__name__ for cls in RawDataSource.AbstractRawDataSource.__subclasses__()]:
         click.echo('\t{}'.format(n))
 
 
