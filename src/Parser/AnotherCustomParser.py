@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from Datastore import Observation, SqlAlchemyDatastore
 from Parser.AbstractParser import AbstractParser, MaximumNumberOfElementsError
 from RawDataSource import AbstractRawDataSource
@@ -37,8 +37,10 @@ class AnotherCustomParser(AbstractParser):
         # had to calculate this in check_max_elements methode, maybe it's reusable.
         self.set_progress_length(self.number_of_values)
 
+        ts = datetime.now()
+
         for n in range(0, self.demo_iterations):
-            ts = datetime.now()
+            ts = ts + timedelta(0, 1)
             for i in range(0, self.demo_datastreams):
                 v = Observation(ts, 23, self.rawdata_source.src, i)
                 self.datastore.store_observation(v)
