@@ -1,4 +1,5 @@
 # coding: utf-8
+import sqlalchemy_jsonfield
 from sqlalchemy import BigInteger, Column, ForeignKey, String, Text, text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -19,7 +20,7 @@ class Datastream(Base):
     id = Column(BigInteger, primary_key=True, server_default=text("nextval('datastream_id_seq'::regclass)"))
     name = Column(String(200), nullable=False)
     description = Column(Text)
-    properties = Column(JSONB(astext_type=Text()))
+    properties = Column(sqlalchemy_jsonfield.JSONField())
     position = Column(String(200), nullable=False)
     thing_id = Column(ForeignKey(
         Thing.id, deferrable=True, initially='DEFERRED'), nullable=False, index=True
