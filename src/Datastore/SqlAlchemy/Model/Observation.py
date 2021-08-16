@@ -2,6 +2,7 @@
 import enum
 
 import sqlalchemy_jsonfield
+from sqlalchemy.dialects import oracle
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, String, text, \
     UniqueConstraint, Time
 from sqlalchemy.ext.declarative import declarative_base
@@ -33,8 +34,7 @@ class Observation(Base):
     ))
     phenomenon_time_start = Column(DateTime(True))
     phenomenon_time_end = Column(DateTime(True))
-    # result_time = Column(DateTime(True), nullable=False)
-    result_time = Column(Time(True), nullable=False)
+    result_time = Column(oracle.TIMESTAMP, nullable=False)  # enable oracle to store milliseconds
     result_type = Column(IntEnum(ResultType), nullable=False, default=ResultType.Number)
     result_number = Column(Float(53))
     result_string = Column(String(200))

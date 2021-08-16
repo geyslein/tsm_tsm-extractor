@@ -11,6 +11,8 @@ docker-compose run app main.py parse -p AnotherCustomParser -t postgresql://post
 
 # @TODO
 
+- [ ] Check if it should be result_time or phenomenon_time_start for the
+      timestamps
 - [ ] Naming: Maybe tsm-ingest-dispatcher is better?
 - [ ] What about the data model changes from FROST STA (e.g. "position")
 - [ ] Strictness: What to do with violated unique constraints, for

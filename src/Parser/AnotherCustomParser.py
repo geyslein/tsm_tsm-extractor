@@ -13,7 +13,7 @@ class AnotherCustomParser(AbstractParser):
         self.parser_settings: {}
 
         # For demo only!
-        self.demo_iterations = 200
+        self.demo_iterations = 2
         # Number of simulated datastreams per iteration
         self.demo_datastreams = 20
         self.number_of_values = self.demo_iterations * self.demo_datastreams
@@ -37,10 +37,8 @@ class AnotherCustomParser(AbstractParser):
         # had to calculate this in check_max_elements methode, maybe it's reusable.
         self.set_progress_length(self.number_of_values)
 
-        ts = datetime.now()
-
         for n in range(0, self.demo_iterations):
-            ts = ts + timedelta(0, 1)
+            ts = datetime.now()
             for i in range(0, self.demo_datastreams):
                 v = Observation(ts, 23, self.rawdata_source.src, i)
                 self.datastore.store_observation(v)
