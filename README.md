@@ -23,6 +23,14 @@ docker-compose run app main.py parse -p AnotherCustomParser -t postgresql://post
 # How to implement a new custom parser
 
 
+# run linting
+
+> docker-compose run app -m pylint Datastore Parser RawDataSource main.py --exit-zero
+
+# run code formatting
+
+> docker-compose run app -m black .
+
 # Ressources
 
 - SQLAlchemy Quick Start: https://gist.github.com/DmitryBe/805fb35e3472b8985c654c8dfb8aa127
