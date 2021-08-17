@@ -1,0 +1,30 @@
+stages:
+  - lint
+  - format
+  - test
+
+
+default:
+  image: python:3.9
+  before_script:
+    - cd src
+    - pip install pylint black
+
+pylint:
+  stage: lint
+  script:
+    - pylint Datastore Parser RawDataSource main.py --exit-zero
+
+black:
+  stage: format
+  script:
+    - black .
+
+
+testing:
+  stage: test
+  script:
+    - echo "Start unit tests!"
+    - python3 test/test_parser.py
+
+
