@@ -2,7 +2,6 @@ import re
 import uuid
 
 from .SqlAlchemyDatastore import SqlAlchemyDatastore
-from .MqttDatastore import MqttDatastore
 from .Observation import Observation
 from .AbstractDatastore import AbstractDatastore
 
@@ -21,10 +20,6 @@ def get_datastore(uri: str, device_id: int) -> AbstractDatastore:
     # ORACLE uri
     if re.search('^oracle://', uri):
         datastore = SqlAlchemyDatastore(uri, device_id)
-
-    # MQTT uri
-    if re.search('^mqtt://', uri):
-        datastore = MqttDatastore(uri, device_id)
 
     # default
     if datastore is None:
