@@ -5,7 +5,7 @@ python src/main.py parse -p AnotherCustomParser -t postgresql://postgres:postgre
 
 # Or with docker
 docker-compose up -d
-docker-compose run app main.py parse -p AnotherCustomParser -t postgresql://postgres:postgres@db/postgres -s https://www.ufz.de/static/custom/weblayout/DefaultInternetLayout/img/logos/ufz_transparent_de_blue.png -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
+docker-compose run --rm app main.py parse -p AnotherCustomParser -t postgresql://postgres:postgres@db/postgres -s https://www.ufz.de/static/custom/weblayout/DefaultInternetLayout/img/logos/ufz_transparent_de_blue.png -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
 
 ```
 
