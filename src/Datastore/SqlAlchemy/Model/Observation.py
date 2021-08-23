@@ -1,9 +1,13 @@
 # coding: utf-8
 import enum
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, String, Text, text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship
+
+import sqlalchemy_jsonfield
+from sqlalchemy.dialects import oracle
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, String, text, \
+    UniqueConstraint, Time
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
 from Datastore.SqlAlchemy.Model import Datastream
 from Datastore.SqlAlchemy.Model.IntEnum import IntEnum
 
@@ -30,19 +34,19 @@ class Observation(Base):
     ))
     phenomenon_time_start = Column(DateTime(True))
     phenomenon_time_end = Column(DateTime(True))
-    result_time = Column(DateTime(True), nullable=False)
+    result_time = Column(oracle.TIMESTAMP, nullable=False)  # enable oracle to store milliseconds
     result_type = Column(IntEnum(ResultType), nullable=False, default=ResultType.Number)
     result_number = Column(Float(53))
     result_string = Column(String(200))
-    result_json = Column(JSONB(astext_type=Text()))
+    result_json = Column(sqlalchemy_jsonfield.JSONField())
     result_boolean = Column(Boolean)
     result_latitude = Column(Float(53))
     result_longitude = Column(Float(53))
     result_altitude = Column(Float(53))
-    result_quality = Column(JSONB(astext_type=Text()))
+    result_quality = Column(sqlalchemy_jsonfield.JSONField())
     valid_time_start = Column(DateTime(True))
     valid_time_end = Column(DateTime(True))
-    parameters = Column(JSONB(astext_type=Text()))
+    parameters = Column(sqlalchemy_jsonfield.JSONField())
     datastream_id = Column(
         ForeignKey(Datastream.id, deferrable=True, initially='DEFERRED'),
         nullable=False, index=True

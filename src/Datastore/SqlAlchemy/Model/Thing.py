@@ -1,5 +1,6 @@
 # coding: utf-8
-from sqlalchemy import BigInteger, Column, String, Text, text
+import sqlalchemy_jsonfield
+from sqlalchemy import BigInteger, Column, String, Text, text, JSON
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -16,7 +17,7 @@ class Thing(Base):
     name = Column(String(200), nullable=False)
     uuid = Column(UUID, nullable=False, unique=True)
     description = Column(Text)
-    properties = Column(JSONB(astext_type=Text()))
+    properties = Column(sqlalchemy_jsonfield.JSONField())
 
     def get_parser_parameters(self, parser_type: str) -> dict:
         try:

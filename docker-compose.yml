@@ -9,7 +9,7 @@ services:
       - DATABASE_URL=psql://postgres:postgres@db:5432/postgres
     depends_on:
       - db
-    entrypoint: python
+    entrypoint: python3
     command: -c exit
 
   db:
@@ -20,4 +20,4 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-    - ./src/Datastore/SqlAlchemy/Sql/:/docker-entrypoint-initdb.d/
+    - ./src/Datastore/SqlAlchemy/Sql/postgres/:/docker-entrypoint-initdb.d/

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from Datastore import Observation, SqlAlchemyDatastore
 from Parser.AbstractParser import AbstractParser, MaximumNumberOfElementsError
 from RawDataSource import AbstractRawDataSource
@@ -13,7 +13,7 @@ class AnotherCustomParser(AbstractParser):
         self.parser_settings: {}
 
         # For demo only!
-        self.demo_iterations = 200
+        self.demo_iterations = 2
         # Number of simulated datastreams per iteration
         self.demo_datastreams = 20
         self.number_of_values = self.demo_iterations * self.demo_datastreams

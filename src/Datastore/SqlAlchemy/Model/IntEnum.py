@@ -25,7 +25,7 @@ class IntEnum(TypeDecorator):
         if isinstance(value, Enum):
             return value
         elif isinstance(value, int):
-            return value
+            return int(value)
         return value.value
 
     def process_result_value(self, value, dialect):

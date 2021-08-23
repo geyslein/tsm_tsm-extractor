@@ -1,4 +1,4 @@
-FROM python:3-alpine as base
+FROM debian:bookworm-slim as base
 
 ARG BUILD_DATE
 ARG VCS_REF
@@ -10,35 +10,54 @@ LABEL maintainer="Martin Abbrent <martin.abbrent@ufz.de>" \
     org.opencontainers.image.revision=$VCS_REF \
     org.opencontainers.image.created=$BUILD_DATE
 
-RUN apk --no-cache add libpq
+RUN apt-get -y update \
+    && apt-get -y dist-upgrade \
+    && apt-get -y --no-install-recommends install \
+      python3 \
+      libaio1 \
+      ca-certificates \
+    && apt-get -y autoremove \
+    && apt-get -y autoclean \
+    && rm -rf /var/lib/apt
 
 FROM base as build
 
-RUN mkdir /install
-WORKDIR /install
-
-RUN apk add --no-cache --virtual .build-deps \
-    gcc \
-    g++ \
-    python3-dev \
-    musl-dev \
-    postgresql-dev
+RUN apt-get -y update \
+    && apt-get -y install \
+      python3-pip \
+      curl \
+      unzip
 
 # add requirements
 COPY src/requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip \
     && pip install \
-        --prefix /install \
+        --user \
         --no-cache-dir \
         --no-warn-script-location -r \
         /tmp/requirements.txt
 
+# fetch oracle instant client
+RUN curl "https://download.oracle.com/otn_software/linux/instantclient/213000/instantclient-basiclite-linux.x64-21.3.0.0.0.zip" > /tmp/instantclient-basiclite-linux.x64.zip \
+    && unzip /tmp/instantclient-basiclite-linux.x64.zip -d /usr/lib/oracle
+
+RUN echo "NAMES.DIRECTORY_PATH = ( TNSNAMES, LDAP )"          >> /usr/lib/oracle/instantclient_21_3/network/admin/sqlnet.ora && \
+    echo "NAMES.DEFAULT_DOMAIN = UFZ.DE"                      >> /usr/lib/oracle/instantclient_21_3/network/admin/sqlnet.ora && \
+    echo "NAMES.LDAP_CONN_TIMEOUT = 1"                        >> /usr/lib/oracle/instantclient_21_3/network/admin/sqlnet.ora && \
+    echo "DIRECTORY_SERVERS = (tnsnames.intranet.ufz.de:389)" >> /usr/lib/oracle/instantclient_21_3/network/admin/ldap.ora && \
+    echo "DEFAULT_ADMIN_CONTEXT = \"ou=oracle,dc=ufz,dc=de\"" >> /usr/lib/oracle/instantclient_21_3/network/admin/ldap.ora && \
+    echo "DIRECTORY_SERVER_TYPE = OID"                        >> /usr/lib/oracle/instantclient_21_3/network/admin/ldap.ora
+
 FROM base as dist
 
-COPY --from=build /install /usr/local
-
 # Create a group and user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup --uid 1000
+RUN useradd --uid 1000 appuser
+
+COPY --chown=appuser --from=build /root/.local /home/appuser/.local
+COPY --from=build /usr/lib/oracle/ /usr/lib/oracle/
+RUN echo /usr/lib/oracle/instantclient_21_3 > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ldconfig
+
 # Tell docker that all future commands should run as the appuser user
 USER appuser
 
@@ -46,4 +65,4 @@ WORKDIR /home/appuser/app/src
 
 COPY src .
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python3", "main.py"]
