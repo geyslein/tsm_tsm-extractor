@@ -13,6 +13,8 @@ class AbstractRawDataSource(ABC):
         self.temp_file: tempfile = tempfile.SpooledTemporaryFile(max_size=1024*1024*32)
         self.fetch()
         self.check_max_file_size()
+        # Rewind to the beginn of the file.
+        self.temp_file.seek(0)
 
     @abstractmethod
     def fetch(self):
@@ -24,6 +26,10 @@ class AbstractRawDataSource(ABC):
         size = self.temp_file.tell()
         if size > MAX_FILE_SIZE:
             raise MaximumFileSizeError(size)
+
+    def read(self):
+        """Read the content of the raw data element"""
+        return self.temp_file.read()
 
 
 class MaximumFileSizeError(Exception):
