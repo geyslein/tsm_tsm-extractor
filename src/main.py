@@ -11,7 +11,7 @@ from RawDataSource import AbstractRawDataSource
 @click.command()
 @click.option(
     '-p', '--parser', 'parser_type',
-    help='Name of the parser to use to read the raw data',
+    help='Name of the parser to use to read the raw data. Should be available from `list` command.',
     required=True, type=str
 )
 @click.option(

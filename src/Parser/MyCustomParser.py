@@ -24,6 +24,7 @@ class MyCustomParser(AbstractParser):
             v = Datastore.Observation(
                 item["datetime"],
                 item["value"],
-                item["origin"], item["position"]
+                item["origin"],
+                item["position"]
             )
-            self.datastore.store_observation(v)
+            self.datastore.store_observations([v])
