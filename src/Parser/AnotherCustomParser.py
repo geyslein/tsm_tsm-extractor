@@ -41,5 +41,5 @@ class AnotherCustomParser(AbstractParser):
             ts = datetime.now()
             for i in range(0, self.demo_datastreams):
                 v = Observation(ts, 23, self.rawdata_source.src, i)
-                self.datastore.store_observation(v)
+                self.datastore.store_observations([v])
                 self.update_progress()
