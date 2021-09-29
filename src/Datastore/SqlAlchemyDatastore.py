@@ -15,6 +15,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
     def __init__(self, uri: str, device_id: int):
 
         # Type hints
+        self.sqla_datastream_cache = {}
         self.session: Session = None
         self.sqla_thing: Thing = None
 
@@ -31,7 +32,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
             err=True,
             fg="green"
         )
-        engine = create_engine(self.uri)
+        engine = create_engine(self.uri, echo=True)
         Session = sessionmaker(bind=engine)
         self.session = Session()
         click.secho(
@@ -67,17 +68,32 @@ class SqlAlchemyDatastore(AbstractDatastore):
 
     def fetch_or_create_datastream(self, observation):
 
-        sqla_datastream = self.session.query(Datastream).join(Thing).filter(
-            Datastream.position == str(observation.position)
-        ).first()
+        # used as name in data stream model and as key for a simple cache as this will not change
+        # during one run of the extractor
+        datastream_name = '{}/{}'.format(self.sqla_thing.name, observation.position)
 
-        if sqla_datastream is None:
-            sqla_datastream = Datastream(
-                thing=self.sqla_thing,
-                position=observation.position,
-                name='{}/{}'.format(self.sqla_thing.name, observation.position)
-            )
-            self.session.add(sqla_datastream)
+        # Lookup simple cache at first
+        if datastream_name in self.sqla_datastream_cache:
+            sqla_datastream = self.sqla_datastream_cache.get(datastream_name)
+
+        else:
+            # Lookup database for existing data stream
+            sqla_datastream = self.session.query(Datastream).filter(
+                Datastream.position == str(observation.position),
+                Datastream.thing == self.sqla_thing
+            ).first()
+
+            # create a new one if there is no existing on found on the database
+            if sqla_datastream is None:
+                sqla_datastream = Datastream(
+                    thing=self.sqla_thing,
+                    position=observation.position,
+                    name=datastream_name
+                )
+                self.session.add(sqla_datastream)
+
+            # Store the new or selected object in simple cache
+            self.sqla_datastream_cache[datastream_name] = sqla_datastream
 
         return sqla_datastream
 
