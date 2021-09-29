@@ -32,7 +32,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
             err=True,
             fg="green"
         )
-        engine = create_engine(self.uri, echo=True)
+        engine = create_engine(self.uri)
         Session = sessionmaker(bind=engine)
         self.session = Session()
         click.secho(
