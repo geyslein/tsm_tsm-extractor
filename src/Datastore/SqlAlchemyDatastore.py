@@ -101,7 +101,6 @@ class SqlAlchemyDatastore(AbstractDatastore):
         if len(self.chunk) > 0:
             self.session.add_all(self.chunk)
             self.chunk.clear()
-            self.session.flush()
             self.session.commit()
 
     def finalize(self):
