@@ -14,12 +14,11 @@ class SqlAlchemyDatastore(AbstractDatastore):
 
     def __init__(self, uri: str, device_id: int):
 
-        # Type hints
+        super().__init__(uri, device_id)
+
         self.sqla_datastream_cache = {}
         self.session: Session = None
         self.sqla_thing: Thing = None
-
-        super().__init__(uri, device_id)
         self.chunk = []
         self.current_chunk_idx = 0
 
