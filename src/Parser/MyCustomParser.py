@@ -6,9 +6,6 @@ from Parser.AbstractParser import AbstractParser
 
 class MyCustomParser(AbstractParser):
 
-    def check_max_elements(self):
-        pass
-
     def do_parse(self):
 
         # your custom numpy magic

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, List
 from io import BytesIO
 
 import numpy as np
@@ -9,11 +9,7 @@ import pandas as pd
 
 from Datastore.Observation import Observation, NanNotAllowedHereError
 from Datastore.SqlAlchemyDatastore import SqlAlchemyDatastore
-from Parser.AbstractParser import (
-    MAX_ELEMENTS,
-    AbstractParser,
-    MaximumNumberOfElementsError,
-)
+from Parser.AbstractParser import AbstractParser
 from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 
 """
@@ -65,6 +61,7 @@ class CsvParser(AbstractParser):
             self.datastore.get_parser_parameters(self.name)
         )
         self._data = self._parse(content, self._parser_kwargs)
+        self.set_progress_length(np.prod(self._data.shape))
 
     @staticmethod
     def _prep_parser_kwargs(parser_kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -160,14 +157,6 @@ class CsvParser(AbstractParser):
                     # self.update_progress() here to report skipped observations. :(
                     pass
             yield observations
-
-    def check_max_elements(self):
-        nelements = np.prod(self._data.shape)
-        if nelements > MAX_ELEMENTS:
-            raise MaximumNumberOfElementsError(nelements)
-
-        # report number of elements for progress computation
-        self.set_progress_length(nelements)
 
     def do_parse(self):
         # line wise computation (_to_observations returns a generator of observations)
