@@ -1,4 +1,5 @@
 import datetime
+import math
 
 
 class Observation:
@@ -16,3 +17,14 @@ class Observation:
         self.value = value
         self.origin = origin
         self.position = position
+
+        self.check_value()
+
+    def check_value(self):
+        # do not allow python nan for now
+        if math.isnan(self.value):
+            raise NanNotAllowedHereError('NaN ist not allowed as observation value.')
+
+
+class NanNotAllowedHereError(ValueError):
+    pass

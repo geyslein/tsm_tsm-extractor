@@ -9,6 +9,7 @@ default:
   before_script:
     - cd src
     - pip install pylint black
+    - pip install -r requirements.txt
 
 pylint:
   stage: lint
@@ -20,11 +21,10 @@ black:
   script:
     - black .
 
-
 testing:
   stage: test
   script:
     - echo "Start unit tests!"
-    - python3 test/test_parser.py
+    - python3 -m unittest discover test
 
 
