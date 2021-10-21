@@ -125,7 +125,7 @@ class CsvParser(AbstractParser):
     @staticmethod
     def _to_observations(
         data: pd.DataFrame, timestamp_column: int, origin: str
-    ) -> Iterator[Observation]:
+    ) -> Iterator[List[Observation]]:
         """
         Convert a given `DataFrame` into an iterator of `Observations`
 
