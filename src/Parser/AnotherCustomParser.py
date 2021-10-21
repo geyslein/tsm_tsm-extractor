@@ -1,6 +1,6 @@
 from datetime import datetime
 from Datastore import Observation, SqlAlchemyDatastore
-from Parser.AbstractParser import AbstractParser, MaximumNumberOfElementsError
+from Parser.AbstractParser import AbstractParser
 from RawDataSource import AbstractRawDataSource
 
 
@@ -22,19 +22,13 @@ class AnotherCustomParser(AbstractParser):
         # pick out the parser settings from the datadstores thing when using SqlAlchemyDatastore
         self.parser_settings = self.datastore.get_parser_parameters(self.__class__.__name__)
 
-    def check_max_elements(self):
-
-        if self.number_of_values > self.max_elements():
-            raise MaximumNumberOfElementsError(self.number_of_values)
-
     def do_parse(self):
 
         # Type hints for PyCharm
         self.datastore: SqlAlchemyDatastore
 
         # Determine the length/number of iterations the parser will do to enable progress reporting
-        # Maybe the number of lines in an csv or number of elements in xml raw data. You already
-        # had to calculate this in check_max_elements methode, maybe it's reusable.
+        # Maybe the number of lines in an csv or number of elements in xml raw data.
         self.set_progress_length(self.number_of_values)
 
         for n in range(0, self.demo_iterations):

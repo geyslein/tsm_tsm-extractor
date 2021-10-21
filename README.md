@@ -161,15 +161,8 @@ class MyCustomParser(AbstractParser):
     pass
 ```
 
-The custom parser class should implement the abstract methods `do_parse`
-and `check_max_elements`. `do_parse` needs to provide the actual
-processing logic and `check_max_elements` guarantees, that the source
-does comply the maximum length for one run. For this check you can
-compare the number of elements with the returning value of the abstract
-parsers static method `max_elements`. Throw a
-`Parser.AbstractParser.MaximumNumberOfElementsError` when the limits are
-exceeded.
-
+The custom parser class should implement the abstract method `do_parse`, which
+needs to implement the actual processing logic.
 A parser objects receives instances of `RawData` and `Datastore` on
 initialization. Use the latter to retrieve the parser settings:
 

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, List
 from io import BytesIO
 
 import numpy as np
@@ -9,11 +9,7 @@ import pandas as pd
 
 from Datastore.Observation import Observation, NanNotAllowedHereError
 from Datastore.SqlAlchemyDatastore import SqlAlchemyDatastore
-from Parser.AbstractParser import (
-    MAX_ELEMENTS,
-    AbstractParser,
-    MaximumNumberOfElementsError,
-)
+from Parser.AbstractParser import AbstractParser
 from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 
 """
@@ -65,6 +61,7 @@ class CsvParser(AbstractParser):
             self.datastore.get_parser_parameters(self.name)
         )
         self._data = self._parse(content, self._parser_kwargs)
+        self.set_progress_length(np.prod(self._data.shape))
 
     @staticmethod
     def _prep_parser_kwargs(parser_kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -125,7 +122,7 @@ class CsvParser(AbstractParser):
     @staticmethod
     def _to_observations(
         data: pd.DataFrame, timestamp_column: int, origin: str
-    ) -> Iterator[Observation]:
+    ) -> Iterator[List[Observation]]:
         """
         Convert a given `DataFrame` into an iterator of `Observations`
 
@@ -158,16 +155,15 @@ class CsvParser(AbstractParser):
                 except NanNotAllowedHereError:
                     # Why the hell is this method static: I'm unable to call
                     # self.update_progress() here to report skipped observations. :(
+                    #
+                    # NOTE:
+                    # Until now there simply was no need to call other methods.
+                    # If this need arises now, do the following:
+                    # - remove the `@staticmethod` decorator
+                    # - add the perameter `self`
+                    # - done!
                     pass
             yield observations
-
-    def check_max_elements(self):
-        nelements = np.prod(self._data.shape)
-        if nelements > MAX_ELEMENTS:
-            raise MaximumNumberOfElementsError(nelements)
-
-        # report number of elements for progress computation
-        self.set_progress_length(nelements)
 
     def do_parse(self):
         # line wise computation (_to_observations returns a generator of observations)
