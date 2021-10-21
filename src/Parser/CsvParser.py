@@ -155,6 +155,13 @@ class CsvParser(AbstractParser):
                 except NanNotAllowedHereError:
                     # Why the hell is this method static: I'm unable to call
                     # self.update_progress() here to report skipped observations. :(
+                    #
+                    # NOTE:
+                    # Until now there simply was no need to call other methods.
+                    # If this need arises now, do the following:
+                    # - remove the `@staticmethod` decorator
+                    # - add the perameter `self`
+                    # - done!
                     pass
             yield observations
 
