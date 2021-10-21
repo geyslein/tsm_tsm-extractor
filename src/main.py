@@ -1,4 +1,3 @@
-import uuid
 
 import click
 import Datastore
@@ -33,12 +32,15 @@ from RawDataSource import AbstractRawDataSource
 )
 def parse(parser_type, target_uri, source_uri, device_id):
     """Parse data of a raw data source to a data store."""
+
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
     # Load the source file
     source = RawDataSource.UrlRawDataSource(source_uri)
     # Dynamically load the parser
     parser = load_parser(parser_type, source, datastore)
+    # Check size limits
+    parser.check_max_elements()
     # Do the parsing work
     parser.do_parse()
     # Finalize the datastore connections

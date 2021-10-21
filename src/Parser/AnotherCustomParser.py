@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from Datastore import Observation, SqlAlchemyDatastore
 from Parser.AbstractParser import AbstractParser, MaximumNumberOfElementsError
 from RawDataSource import AbstractRawDataSource

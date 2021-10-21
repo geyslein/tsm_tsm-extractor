@@ -1,9 +1,10 @@
+from typing import List
 import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from .AbstractDatastore import AbstractDatastore
-from . import Observation
+from .Observation import Observation
 from .SqlAlchemy.Model import Thing, Datastream
 from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, ResultType
 
@@ -61,7 +62,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
         if self.current_chunk_idx % CHUNK_SIZE == 0:
             self.insert_commit_chunk()
 
-    def store_observations(self, observations: [Observation]) -> None:
+    def store_observations(self, observations: List[Observation]) -> None:
         for i in observations:
             self.store_observation(i)
 

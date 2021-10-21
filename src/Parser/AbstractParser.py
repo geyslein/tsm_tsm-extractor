@@ -2,7 +2,6 @@ from abc import abstractmethod, ABC
 
 import click
 
-import RawDataSource
 from Datastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
 
@@ -15,7 +14,7 @@ class AbstractParser(ABC):
         self.datastore: AbstractDatastore = datastore
         self.rawdata_source: AbstractRawDataSource = rawdata_source
         self.progress = click.progressbar(length=0, show_pos=True, label='Parsing raw data')
-        self.check_max_elements()
+        self.name = self.__class__.__name__
 
     def set_progress_length(self, length: int):
         self.progress.length = length
