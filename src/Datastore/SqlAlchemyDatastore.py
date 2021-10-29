@@ -15,13 +15,13 @@ class SqlAlchemyDatastore(AbstractDatastore):
 
     def __init__(self, uri: str, device_id: int):
 
-        super().__init__(uri, device_id)
-
         self.sqla_datastream_cache = {}
         self.session: Session = None
         self.sqla_thing: Thing = None
         self.chunk = []
         self.current_chunk_idx = 0
+
+        super().__init__(uri, device_id)
 
     def get_parser_parameters(self, parser_type: str) -> dict:
         return self.sqla_thing.get_parser_parameters(parser_type)
