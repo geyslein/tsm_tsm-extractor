@@ -98,22 +98,23 @@ python src/main.py parse -p AnotherCustomParser -t oracle://ZID_SQLALCHEMY_TEST:
 
 ## With docker
 
-### Build the image
+### Take the ready to use image from the registry
 
 ```bash
-docker build -t tsm-extractor .
-```
-
-### Run it
-
-```bash
-docker run --rm tsm-extractor parse -p AnotherCustomParser -t postgresql://postgres:postgres@postgres.example.com/postgres -s https://example.com/ -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
+docker run --rm git.ufz.de:4567/rdm-software/timeseries-management/tsm-extractor/extractor:latest parse -p AnotherCustomParser -t postgresql://postgres:postgres@postgres.example.com/postgres -s https://example.com/ -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
 ```
 
 Note, that it is not possible to access any database with `localhost` as
 address. You may use `--network="host"` but that is not recommended from
 security perspective. If you are not experienced in docker networking
 better use the docker-compose setup below.
+
+### Or build the image yourself
+
+```bash
+docker build -t tsm-extractor .
+docker run --rm tsm-extractor parse -p AnotherCustomParser -t postgresql://postgres:postgres@postgres.example.com/postgres -s https://example.com/ -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
+```
 
 ## With docker-compose
 
