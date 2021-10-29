@@ -51,7 +51,7 @@ RUN echo "NAMES.DIRECTORY_PATH = ( TNSNAMES, LDAP )"          >> /usr/lib/oracle
 FROM base as dist
 
 # Create a group and user
-RUN useradd --uid 1000 appuser
+RUN useradd --uid 1000 -m appuser
 
 COPY --chown=appuser --from=build /root/.local /home/appuser/.local
 COPY --from=build /usr/lib/oracle/ /usr/lib/oracle/
