@@ -119,10 +119,7 @@ class CsvParser(AbstractParser):
 
         return data
 
-    @staticmethod
-    def _to_observations(
-        data: pd.DataFrame, timestamp_column: int, origin: str
-    ) -> Iterator[List[Observation]]:
+    def _to_observations(self, data: pd.DataFrame, timestamp_column: int, origin: str) -> Iterator[List[Observation]]:
         """
         Convert a given `DataFrame` into an iterator of `Observations`
 
@@ -153,16 +150,7 @@ class CsvParser(AbstractParser):
                         )
                     )
                 except NanNotAllowedHereError:
-                    # Why the hell is this method static: I'm unable to call
-                    # self.update_progress() here to report skipped observations. :(
-                    #
-                    # NOTE:
-                    # Until now there simply was no need to call other methods.
-                    # If this need arises now, do the following:
-                    # - remove the `@staticmethod` decorator
-                    # - add the perameter `self`
-                    # - done!
-                    pass
+                    self.update_progress(1)
             yield observations
 
     def do_parse(self):
