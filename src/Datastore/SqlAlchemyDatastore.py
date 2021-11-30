@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 import click
 from sqlalchemy import create_engine
@@ -88,7 +89,8 @@ class SqlAlchemyDatastore(AbstractDatastore):
                 sqla_datastream = Datastream(
                     thing=self.sqla_thing,
                     position=observation.position,
-                    name=datastream_name
+                    name=datastream_name,
+                    properties={'created_at': str(datetime.datetime.now())}
                 )
                 self.session.add(sqla_datastream)
 
