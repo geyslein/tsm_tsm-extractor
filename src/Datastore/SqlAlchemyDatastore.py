@@ -11,6 +11,14 @@ from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, Result
 CHUNK_SIZE = 1000
 
 
+class ThingNotFoundError(Exception):
+
+    message = 'No thing with uuid "{}" found in database.'
+
+    def __init__(self, thing_uuid) -> None:
+        super().__init__(self.message.format(thing_uuid))
+
+
 class SqlAlchemyDatastore(AbstractDatastore):
 
     def __init__(self, uri: str, device_id: int):
@@ -43,6 +51,9 @@ class SqlAlchemyDatastore(AbstractDatastore):
         self.sqla_thing = self.session.query(Thing).filter(
             Thing.uuid == str(self.device_id)
         ).first()
+
+        if self.sqla_thing is None:
+            raise ThingNotFoundError(self.device_id)
 
     def store_observation(self, observation: Observation) -> None:
 
