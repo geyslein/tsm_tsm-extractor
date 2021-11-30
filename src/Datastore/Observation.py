@@ -12,11 +12,13 @@ class Observation:
         origin (str):   The source of the raw data file.
         position (int): Position in the source file, i.g. number of the column in a csv file.
     """
-    def __init__(self, timestamp: datetime, value: float, origin: str, position: int):
+    def __init__(self, timestamp: datetime, value: float, origin: str, position: int,
+                 header: str = ''):
         self.timestamp = timestamp
         self.value = value
         self.origin = origin
         self.position = position
+        self.header = header
 
         self.check_value()
 

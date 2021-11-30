@@ -149,7 +149,8 @@ class CsvParser(AbstractParser):
                 try:
                     observations.append(
                         Observation(
-                            timestamp=timestamp, value=value, position=i, origin=origin
+                            timestamp=timestamp, value=value, position=i, origin=origin,
+                            header=row.axes[0][i]
                         )
                     )
                 except NanNotAllowedHereError:
