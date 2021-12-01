@@ -66,7 +66,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
         sqla_obs = SqlaObservation(
             result_time=observation.timestamp, result_type=ResultType.Number,
             result_number=observation.value, datastream=sqla_datastream,
-            parameters={"origin": observation.origin}
+            parameters={"origin": observation.origin, "column_header": observation.header}
         )
 
         self.chunk.append(sqla_obs)
