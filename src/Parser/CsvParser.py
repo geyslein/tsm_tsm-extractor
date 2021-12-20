@@ -6,6 +6,7 @@ from io import BytesIO
 
 import numpy as np
 import pandas as pd
+from Datastore.AbstractDatastore import AbstractDatastore
 
 from Datastore.Observation import Observation, NanNotAllowedHereError
 from Datastore.SqlAlchemyDatastore import SqlAlchemyDatastore
@@ -53,15 +54,9 @@ DEFAULT_SETTINGS = {
 
 class CsvParser(AbstractParser):
     def __init__(
-        self, rawdata_source: AbstractRawDataSource, datastore: SqlAlchemyDatastore
+        self, rawdata_source: AbstractRawDataSource, datastore: AbstractDatastore
     ):
         super().__init__(rawdata_source, datastore)
-        content = self.rawdata_source.read()
-        self._parser_kwargs = self._prep_parser_kwargs(
-            self.datastore.get_parser_parameters(self.name)
-        )
-        self._data = self._parse(content, self._parser_kwargs)
-        self.set_progress_length(np.prod(self._data.shape))
 
     @staticmethod
     def _prep_parser_kwargs(parser_kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -87,7 +82,7 @@ class CsvParser(AbstractParser):
         return {**DEFAULT_SETTINGS, **parser_kwargs}
 
     @staticmethod
-    def _parse(data: str, parser_kwargs: Dict[str, Any]) -> pd.DataFrame:
+    def _parse(data: bytes, parser_kwargs: Dict[str, Any]) -> pd.DataFrame:
         """
         Parse the given data string into a `DataFrame`
 
@@ -110,22 +105,25 @@ class CsvParser(AbstractParser):
         header = kwargs.pop("header") - 1
 
         try:
-            data = pd.read_csv(BytesIO(data), header=header, **kwargs)
-            data.iloc[:, timestamp_column] = pd.to_datetime(
-                data.iloc[:, timestamp_column], format=timestamp_format
+            df = pd.read_csv(BytesIO(data), header=header, **kwargs)
+            df.iloc[:, timestamp_column] = pd.to_datetime(
+                df.iloc[:, timestamp_column], format=timestamp_format
             )
         except (pd.errors.EmptyDataError, IndexError):
-            data = pd.DataFrame()
+            df = pd.DataFrame()
 
-        return data
+        return df
 
-    def _to_observations(self, data: pd.DataFrame, timestamp_column: int, origin: str) -> Iterator[List[Observation]]:
+    @staticmethod
+    def _to_observations(
+        row: pd.Series, timestamp_column: int, origin: str
+    ) -> List[Observation]:
         """
-        Convert a given `DataFrame` into an iterator of `Observations`
+        Convert a given `Series` into a list of `Observations`
 
         Parameters
         ----------
-        data:
+        row:
             data to convert
         origin:
             value to store in `Observation.origin`
@@ -134,31 +132,34 @@ class CsvParser(AbstractParser):
         -------
         `Observations` iterator
         """
-        if data.empty:
-            return []
+        observations = []
+        if row.empty:
+            return observations
+        timestamp = row.iloc[timestamp_column]
 
-        for _, row in data.iterrows():
-            timestamp = row.iloc[timestamp_column]
-            observations = []
-            for i, value in enumerate(row):
-                if i == timestamp_column:
-                    continue
-                try:
-                    observations.append(
-                        Observation(
-                            timestamp=timestamp, value=value, position=i, origin=origin
-                        )
-                    )
-                except NanNotAllowedHereError:
-                    self.update_progress(1)
-            yield observations
+        for i, value in enumerate(row):
+            if i == timestamp_column:
+                continue
+            observations.append(
+                Observation(timestamp=timestamp, value=value, position=i, origin=origin)
+            )
+        return observations
 
     def do_parse(self):
-        # line wise computation (_to_observations returns a generator of observations)
-        for observations in self._to_observations(
-            data=self._data,
-            timestamp_column=self._parser_kwargs["timestamp_column"],
-            origin=self.rawdata_source.src,
-        ):
-            self.datastore.store_observations(observations)
-            self.update_progress(len(observations))
+        parser_kwargs = self._prep_parser_kwargs(
+            self.datastore.get_parser_parameters(self.name)
+        )
+        content = self.rawdata_source.read()
+        data = self._parse(content, parser_kwargs)
+
+        self.set_progress_length(np.prod(data.shape))
+
+        for _, row in data.iterrows():
+            try:
+                observations = self._to_observations(
+                    row, parser_kwargs["timestamp_column"], self.rawdata_source.src
+                )
+                self.datastore.store_observations(observations)
+            except NanNotAllowedHereError:
+                pass
+            self.update_progress(len(row))

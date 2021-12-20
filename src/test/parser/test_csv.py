@@ -135,15 +135,12 @@ class TestCSVParser(unittest.TestCase):
         parser = CsvParser(MockDataSource(), MockDatastore())
 
         for dtype, shape in itertools.product(self.TYPES, self.SHAPES):
-            expected = self._generate_data(dtype, shape, timestamp_column=0)
-            observations = sum(
-                CsvParser._to_observations(
-                    expected, timestamp_column=0, origin="/unit/test"
-                ),
-                [],
-            )
+            data = self._generate_data(dtype, shape, timestamp_column=0)
+            observations = []
+            for _, row in data.iterrows():
+                observations.extend(parser._to_observations(row, timestamp_column=0, origin="/unit/test"))
             got = self._to_frame(observations, timestamp_column=0)
-            self._assert_df_equality(expected, got)
+            self._assert_df_equality(data, got)
 
     def test_integration(self):
         """
