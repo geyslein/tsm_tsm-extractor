@@ -26,10 +26,12 @@ class TestCSVParser(unittest.TestCase):
         {
             "timestamp_column": 0,
             "timestamp_format": "%Y-%m-%dT%H:%M:%S",
+            "delimiter": ","
         },
         {
             "timestamp_column": 1,
             "timestamp_format": "%d/%m/%Y %H:%M:%S",
+            "delimiter": ";"
         },
     ]
 
@@ -67,10 +69,9 @@ class TestCSVParser(unittest.TestCase):
         fobj = BytesIO()
         data.to_csv(
             fobj,
-            sep=",",
+            sep=parameters["delimiter"],
             header=True,
             index=False,
-            # timestamp_format=parameters["timestamp_format"],
         )
         fobj.seek(0)
         return fobj.read()
