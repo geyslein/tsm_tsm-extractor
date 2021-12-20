@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 import click
 from sqlalchemy import create_engine
@@ -9,6 +10,14 @@ from .SqlAlchemy.Model import Thing, Datastream
 from .SqlAlchemy.Model.Observation import Observation as SqlaObservation, ResultType
 
 CHUNK_SIZE = 1000
+
+
+class ThingNotFoundError(Exception):
+
+    message = 'No thing with uuid "{}" found in database.'
+
+    def __init__(self, thing_uuid) -> None:
+        super().__init__(self.message.format(thing_uuid))
 
 
 class SqlAlchemyDatastore(AbstractDatastore):
@@ -44,6 +53,9 @@ class SqlAlchemyDatastore(AbstractDatastore):
             Thing.uuid == str(self.device_id)
         ).first()
 
+        if self.sqla_thing is None:
+            raise ThingNotFoundError(self.device_id)
+
     def store_observation(self, observation: Observation) -> None:
 
         # increase chunk counter
@@ -54,7 +66,7 @@ class SqlAlchemyDatastore(AbstractDatastore):
         sqla_obs = SqlaObservation(
             result_time=observation.timestamp, result_type=ResultType.Number,
             result_number=observation.value, datastream=sqla_datastream,
-            parameters={"origin": observation.origin}
+            parameters={"origin": observation.origin, "column_header": observation.header}
         )
 
         self.chunk.append(sqla_obs)
@@ -88,7 +100,8 @@ class SqlAlchemyDatastore(AbstractDatastore):
                 sqla_datastream = Datastream(
                     thing=self.sqla_thing,
                     position=observation.position,
-                    name=datastream_name
+                    name=datastream_name,
+                    properties={'created_at': str(datetime.datetime.now())}
                 )
                 self.session.add(sqla_datastream)
 
