@@ -8,9 +8,9 @@ from Datastore.Observation import Observation
 
 
 class MockDatastore(AbstractDatastore):
-    def __init__(self, uri, device_id, parser_kwargs):
+    def __init__(self, uri="", device_id="", parser_kwargs=None):
         super().__init__(uri, device_id)
-        self.parser_kwargs = parser_kwargs
+        self.parser_kwargs = parser_kwargs or {}
         self.observations = []
 
     def get_parser_parameters(self, parser_type) -> Dict[str, Any]:
