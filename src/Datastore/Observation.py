@@ -27,6 +27,8 @@ class Observation:
         if math.isnan(self.value):
             raise NanNotAllowedHereError('NaN ist not allowed as observation value.')
 
+    def __repr__(self):
+        return f"Observation({self.timestamp} | {self.value} | {self.origin} | {self.position})"
 
 class NanNotAllowedHereError(ValueError):
     pass
