@@ -6,10 +6,11 @@ from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 
 
 class MockDataSource(AbstractRawDataSource):
-    def __init__(self, data: bytes = b""):
+    def __init__(self, data: str):
         self.data = data
-        super().__init__(src="/mock/source")
+        super().__init__(src="")
 
     def fetch(self):
         self.temp_file.write(self.data)
         self.temp_file.seek(0)
+

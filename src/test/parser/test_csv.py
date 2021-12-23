@@ -26,12 +26,10 @@ class TestCSVParser(unittest.TestCase):
         {
             "timestamp_column": 0,
             "timestamp_format": "%Y-%m-%dT%H:%M:%S",
-            "delimiter": ","
         },
         {
             "timestamp_column": 1,
             "timestamp_format": "%d/%m/%Y %H:%M:%S",
-            "delimiter": ";"
         },
     ]
 
@@ -69,9 +67,10 @@ class TestCSVParser(unittest.TestCase):
         fobj = BytesIO()
         data.to_csv(
             fobj,
-            sep=parameters["delimiter"],
+            sep=",",
             header=True,
             index=False,
+            # timestamp_format=parameters["timestamp_format"],
         )
         fobj.seek(0)
         return fobj.read()
@@ -103,12 +102,9 @@ class TestCSVParser(unittest.TestCase):
         """
         test, if missing but required parser settings raise an exception
         """
-
-        parser = CsvParser(MockDataSource(), MockDatastore())
-
         for key in REQUIRED_SETTINGS:
             with self.assertRaises(TypeError):
-                parser._prep_parser_kwargs(
+                CsvParser._prep_parser_kwargs(
                     {k: None for k in REQUIRED_SETTINGS if k != key}
                 )
 
@@ -116,31 +112,29 @@ class TestCSVParser(unittest.TestCase):
         """
         test the basic parsing functionality
         """
-        parser = CsvParser(MockDataSource(), MockDatastore())
-
         for dtype, shape, parameters in itertools.product(
             self.TYPES, self.SHAPES, self.PARAMETERS
         ):
             expected = self._generate_data(dtype, shape, parameters["timestamp_column"])
             content = self._to_bytes(expected, parameters)
             kwargs = {"header": 1, "delimiter": ",", **parameters}
-            got = parser._parse(content, kwargs)
+            got = CsvParser._parse(content, kwargs)
             self._assert_df_equality(expected, got)
 
     def test_observations(self):
         """
-        test the conversions from a `DataFrame` into a sequence of `Observation`s
+        test the converions from a `DataFrame` into a sequence of `Observation`s
         """
-
-        parser = CsvParser(MockDataSource(), MockDatastore())
-
         for dtype, shape in itertools.product(self.TYPES, self.SHAPES):
-            data = self._generate_data(dtype, shape, timestamp_column=0)
-            observations = []
-            for _, row in data.iterrows():
-                observations.extend(parser._to_observations(row, timestamp_column=0, origin="/unit/test"))
+            expected = self._generate_data(dtype, shape, timestamp_column=0)
+            observations = sum(
+                CsvParser._to_observations(
+                    expected, timestamp_column=0, origin="/unit/test"
+                ),
+                [],
+            )
             got = self._to_frame(observations, timestamp_column=0)
-            self._assert_df_equality(data, got)
+            self._assert_df_equality(expected, got)
 
     def test_integration(self):
         """
