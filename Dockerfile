@@ -65,4 +65,4 @@ WORKDIR /home/appuser/app/src
 
 COPY src .
 
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["python3", "/home/appuser/app/src/main.py"]
