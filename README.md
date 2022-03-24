@@ -144,7 +144,7 @@ data structure) raw data. The entities we are currently using are
 the Basic STA Model")
 
 You can find the DDL (for postgres) in this repo:
-`src/Datastore/SqlAlchemy/Sql/postgres/postgres-ddl.sql`.
+`postgres/postgres-ddl.sql`.
 
 # Developing custom modules
 
@@ -219,7 +219,7 @@ self.update_progress(10) # report ten steps in one call
 ## Run linting
 
 ```bash
-docker-compose run app -m pylint Datastore Parser RawDataSource main.py --exit-zero
+docker-compose run app -m pylint Parser RawDataSource main.py --exit-zero
 ```
 
 ## Run code formatting

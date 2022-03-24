@@ -1,4 +1,4 @@
-import Datastore
+import tsm_datastore_lib
 # import numpy as np
 from datetime import datetime
 from Parser.AbstractParser import AbstractParser
@@ -18,7 +18,7 @@ class MyCustomParser(AbstractParser):
         }]
 
         for item in dataset:
-            v = Datastore.Observation(
+            v = tsm_datastore_lib.Observation(
                 item["datetime"],
                 item["value"],
                 item["origin"],

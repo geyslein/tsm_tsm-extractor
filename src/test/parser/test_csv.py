@@ -11,7 +11,7 @@ import pandas as pd
 
 from MockDatasource import MockDataSource
 from MockDatastore import MockDatastore
-from Datastore.Observation import Observation
+from tsm_datastore_lib.Observation import Observation
 from Parser.CsvParser import REQUIRED_SETTINGS, CsvParser
 
 

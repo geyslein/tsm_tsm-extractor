@@ -3,8 +3,8 @@
 
 from typing import List, Dict, Any
 
-from Datastore.AbstractDatastore import AbstractDatastore
-from Datastore.Observation import Observation
+from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
+from tsm_datastore_lib.Observation import Observation
 
 
 class MockDatastore(AbstractDatastore):

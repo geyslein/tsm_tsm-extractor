@@ -20,4 +20,4 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-    - ./src/Datastore/SqlAlchemy/Sql/postgres/:/docker-entrypoint-initdb.d/
+    - ./postgres/:/docker-entrypoint-initdb.d/
