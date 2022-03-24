@@ -1,5 +1,5 @@
 from datetime import datetime
-from Datastore import Observation, SqlAlchemyDatastore
+from tsm_datastore_lib import Observation, SqlAlchemyDatastore
 from Parser.AbstractParser import AbstractParser
 from RawDataSource import AbstractRawDataSource
 

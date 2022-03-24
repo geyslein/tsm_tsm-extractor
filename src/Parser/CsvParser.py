@@ -6,9 +6,10 @@ from io import BytesIO
 
 import numpy as np
 import pandas as pd
+from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 
-from Datastore.Observation import Observation, NanNotAllowedHereError
-from Datastore.SqlAlchemyDatastore import SqlAlchemyDatastore
+from tsm_datastore_lib.Observation import Observation, NanNotAllowedHereError
+from tsm_datastore_lib.SqlAlchemyDatastore import SqlAlchemyDatastore
 from Parser.AbstractParser import AbstractParser
 from RawDataSource.AbstractRawDataSource import AbstractRawDataSource
 

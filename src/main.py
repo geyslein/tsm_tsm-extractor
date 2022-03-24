@@ -1,9 +1,9 @@
 
 import click
-import Datastore
+import tsm_datastore_lib
 import Parser
 import RawDataSource
-from Datastore import AbstractDatastore
+from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
 
 
@@ -47,9 +47,9 @@ def parse(parser_type, target_uri, source_uri, device_id):
     click.echo('😁')
 
 
-def load_datastore(target_uri: str, device_id: int) -> Datastore.AbstractDatastore:
+def load_datastore(target_uri: str, device_id: int) -> tsm_datastore_lib.AbstractDatastore:
     try:
-        datastore = Datastore.get_datastore(target_uri, device_id)
+        datastore = tsm_datastore_lib.get_datastore(target_uri, device_id)
     except (NotImplementedError) as e:
         raise click.BadParameter(
             'No matching datastore type for URI pattern "{}".'.format(target_uri)
@@ -80,7 +80,7 @@ def version():
 def list_available():
     """Display available datastore, parser and raw data source types."""
     click.secho('Datastore types', bg='green')
-    for n in [cls.__name__ for cls in Datastore.AbstractDatastore.__subclasses__()]:
+    for n in [cls.__name__ for cls in tsm_datastore_lib.AbstractDatastore.__subclasses__()]:
         click.echo('\t{}'.format(n))
     click.secho('Parser types', bg='green')
     for n in [cls.__name__ for cls in Parser.AbstractParser.__subclasses__()]:

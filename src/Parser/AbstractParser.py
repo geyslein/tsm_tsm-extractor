@@ -2,8 +2,9 @@ from abc import abstractmethod, ABC
 
 import click
 
-from Datastore import AbstractDatastore
+from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
+
 
 class AbstractParser(ABC):
 

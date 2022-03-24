@@ -81,8 +81,8 @@ integration-test:
     - echo "import psycopg2" >> load-fixtures.py
     - echo "connection = psycopg2.connect('${DB_URL}')" >> load-fixtures.py
     - echo "cursor = connection.cursor()" >> load-fixtures.py
-    - echo "cursor.execute(open('src/Datastore/SqlAlchemy/Sql/postgres/postgres-ddl.sql', 'r').read())" >> load-fixtures.py
-    - echo "cursor.execute(open('src/Datastore/SqlAlchemy/Sql/postgres/postgres-fixtures.sql', 'r').read())" >> load-fixtures.py
+    - echo "cursor.execute(open('postgres/postgres-ddl.sql', 'r').read())" >> load-fixtures.py
+    - echo "cursor.execute(open('postgres/postgres-fixtures.sql', 'r').read())" >> load-fixtures.py
     - python3 load-fixtures.py
     # Run the simple demo with parameters fitting into the fixtures loaded before
     - python3 src/main.py parse -p AnotherCustomParser -t ${DB_URL} -s https://example.com/ -d ce2b4fb6-d9de-11eb-a236-125e5a40a845

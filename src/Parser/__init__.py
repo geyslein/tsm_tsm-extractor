@@ -1,5 +1,5 @@
 import Parser
-from Datastore import AbstractDatastore
+from tsm_datastore_lib import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
 from .AbstractParser import AbstractParser
 from .MyCustomParser import MyCustomParser
