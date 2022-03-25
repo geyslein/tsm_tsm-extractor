@@ -16,13 +16,26 @@ RUN apt-get -y update \
       python3 \
       libaio1 \
       ca-certificates \
-      curl \
-      unzip \
     && apt-get -y autoremove \
     && apt-get -y autoclean \
     && rm -rf /var/lib/apt
 
 FROM base as build
+
+RUN apt-get -y update \
+    && apt-get -y install \
+      python3-pip \
+      curl \
+      unzip
+
+# add requirements
+COPY src/requirements.txt /tmp/requirements.txt
+RUN pip install --upgrade pip \
+    && pip install \
+        --user \
+        --no-cache-dir \
+        --no-warn-script-location -r \
+        /tmp/requirements.txt
 
 # fetch oracle instant client
 RUN curl "https://download.oracle.com/otn_software/linux/instantclient/213000/instantclient-basiclite-linux.x64-21.3.0.0.0.zip" > /tmp/instantclient-basiclite-linux.x64.zip \
@@ -37,16 +50,13 @@ RUN echo "NAMES.DIRECTORY_PATH = ( TNSNAMES, LDAP )"          >> /usr/lib/oracle
 
 FROM base as dist
 
-RUN apt-get -y update \
-    && apt-get -y install \
-      python3-pip 
+# Create a group and user
+RUN useradd --uid 1000 -m appuser
 
+COPY --chown=appuser --from=build /root/.local /home/appuser/.local
 COPY --from=build /usr/lib/oracle/ /usr/lib/oracle/
 RUN echo /usr/lib/oracle/instantclient_21_3 > /etc/ld.so.conf.d/oracle-instantclient.conf \
     && ldconfig
-
-# Create a group and user
-RUN useradd --uid 1000 -m appuser
 
 # Tell docker that all future commands should run as the appuser user
 USER appuser
@@ -55,12 +65,4 @@ WORKDIR /home/appuser/app/src
 
 COPY src .
 
-# add requirements
-RUN pip install --no-warn-script-location --upgrade pip \
-    && pip install \
-        --user \
-        --no-cache-dir \
-        --no-warn-script-location \
-        -r requirements.txt
-
-ENTRYPOINT ["python3", "/home/appuser/app/src/main.py"]
+ENTRYPOINT ["python3", "main.py"]
