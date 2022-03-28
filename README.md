@@ -132,6 +132,46 @@ note the slight difference in the database URI:
 ```bash
 docker-compose run --rm app main.py parse -p AnotherCustomParser -t postgresql://postgres:postgres@db/postgres -s https://example.com/ -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
 ```
+## Running the TSM Extractor on EVE
+
+The main difference when running the extractor on EVE, compared to the methods outlined above, is the containerization technology. Docker and the related tooling is not available and instead [Singularity](https://apptainer.org/) is used to manage and run containers. Fortunately Singularity is able to convert many Docker images on the fly and run them accordingly. In order to start the extractor on an interactive login shell run the following command:
+
+```shell
+singularity run \
+            --docker-username GITLAB-USER \
+            --docker-password GITLAB-PASSWORD \
+            docker://git.ufz.de:4567/rdm-software/timeseries-management/tsm-extractor/extractor:latest parse \
+            -p AnotherCustomParser \
+            -t postgresql://postgres:postgres@postgres.example.com/postgres
+            -s https://example.com/ \
+            -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
+```
+
+To run an extractor job using the [SLURM scheduler](https://slurm.schedmd.com/documentation.html) write the following content into a file (e.g. `run.sh`):
+```shell
+#!/bin/bash
+
+#SBATCH --job-name=extractor
+#SBATCH --time=0-00:30:00
+#SBATCH --mem-per-cpu=1G
+#SBATCH --output=/work/%u/%x-%j.log
+
+singularity run \
+            --docker-username GITLAB-USER \
+            --docker-password GITLAB-PASSWORD \
+            docker://git.ufz.de:4567/rdm-software/timeseries-management/tsm-extractor/extractor:latest parse \
+            -p AnotherCustomParser \
+            -t postgresql://postgres:postgres@postgres.example.com/postgres
+            -s https://example.com/ \
+            -d ce2b4fb6-d9de-11eb-a236-125e5a40a845
+```
+ and instruct SLURM to execute this job defintion with:
+
+ ```shell
+ sbatch run.sh
+ ```
+
+For more details about the scheduling process, please refer to the [EVE Wiki](https://wiki.ufz.de/eve/index.php/Submitting_Jobs_SLURM).
 
 # Database model
 
