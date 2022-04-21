@@ -3,4 +3,13 @@ disable=
     C0103, # snake-case naming style
     C0114, # missing module docstring
     C0115, # missing class docstring
-    C0116  # missing function/method docstring
+    C0116, # missing function/method docstring
+    W0612, # unused variable
+
+[BASIC]
+# Good variable names which should always be accepted, separated by a comma.
+# Removes warnings coming from for-loops
+good-names=i,
+           j,
+           k,
+           n
