@@ -54,15 +54,9 @@ DEFAULT_SETTINGS = {
 
 class CsvParser(AbstractParser):
     def __init__(
-        self, rawdata_source: AbstractRawDataSource, datastore: SqlAlchemyDatastore
+        self, rawdata_source: AbstractRawDataSource, datastore: AbstractDatastore
     ):
         super().__init__(rawdata_source, datastore)
-        content = self.rawdata_source.read()
-        self._parser_kwargs = self._prep_parser_kwargs(
-            self.datastore.get_parser_parameters(self.name)
-        )
-        self._data = self._parse(content, self._parser_kwargs)
-        self.set_progress_length(np.prod(self._data.shape))
 
     @staticmethod
     def _prep_parser_kwargs(parser_kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -88,7 +82,7 @@ class CsvParser(AbstractParser):
         return {**DEFAULT_SETTINGS, **parser_kwargs}
 
     @staticmethod
-    def _parse(data: str, parser_kwargs: Dict[str, Any]) -> pd.DataFrame:
+    def _parse(data: bytes, parser_kwargs: Dict[str, Any]) -> pd.DataFrame:
         """
         Parse the given data string into a `DataFrame`
 
@@ -111,68 +105,42 @@ class CsvParser(AbstractParser):
         header = kwargs.pop("header") - 1
 
         try:
-            data = pd.read_csv(BytesIO(data), header=header, **kwargs)
-            data.iloc[:, timestamp_column] = pd.to_datetime(
-                data.iloc[:, timestamp_column], format=timestamp_format
+            df = pd.read_csv(BytesIO(data), header=header, **kwargs)
+            df.iloc[:, timestamp_column] = pd.to_datetime(
+                df.iloc[:, timestamp_column], format=timestamp_format
             )
         except (pd.errors.EmptyDataError, IndexError):
-            data = pd.DataFrame()
+            df = pd.DataFrame()
 
-        return data
+        return df
 
-    @staticmethod
-    def _to_observations(
-        data: pd.DataFrame, timestamp_column: int, origin: str
-    ) -> Iterator[List[Observation]]:
-        """
-        Convert a given `DataFrame` into an iterator of `Observations`
+    def do_parse(self):
+        parser_kwargs = self._prep_parser_kwargs(
+            self.datastore.get_parser_parameters(self.name)
+        )
+        content = self.rawdata_source.read()
+        data = self._parse(content, parser_kwargs)
+        timestamp_column = parser_kwargs["timestamp_column"]
 
-        Parameters
-        ----------
-        data:
-            data to convert
-        origin:
-            value to store in `Observation.origin`
-
-        Returns
-        -------
-        `Observations` iterator
-        """
-        if data.empty:
-            return []
+        self.set_progress_length(np.prod(data.shape))
 
         for _, row in data.iterrows():
+
             timestamp = row.iloc[timestamp_column]
-            observations = []
+
             for i, value in enumerate(row):
                 if i == timestamp_column:
                     continue
                 try:
-                    observations.append(
-                        Observation(
-                            timestamp=timestamp, value=value, position=i, origin=origin,
-                            header=row.axes[0][i]
-                        )
+                    observation = Observation(
+                        timestamp=timestamp,
+                        value=value,
+                        position=i,
+                        origin=self.rawdata_source.src,
+                        header=data.columns[i]
                     )
+                    self.datastore.store_observations([observation])
                 except NanNotAllowedHereError:
-                    # Why the hell is this method static: I'm unable to call
-                    # self.update_progress() here to report skipped observations. :(
-                    #
-                    # NOTE:
-                    # Until now there simply was no need to call other methods.
-                    # If this need arises now, do the following:
-                    # - remove the `@staticmethod` decorator
-                    # - add the perameter `self`
-                    # - done!
                     pass
-            yield observations
 
-    def do_parse(self):
-        # line wise computation (_to_observations returns a generator of observations)
-        for observations in self._to_observations(
-            data=self._data,
-            timestamp_column=self._parser_kwargs["timestamp_column"],
-            origin=self.rawdata_source.src,
-        ):
-            self.datastore.store_observations(observations)
-            self.update_progress(len(observations))
+            self.update_progress(len(row))
