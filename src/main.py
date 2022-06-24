@@ -1,3 +1,4 @@
+import logging
 
 import click
 import tsm_datastore_lib
@@ -5,6 +6,23 @@ import Parser
 import RawDataSource
 from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
+
+from mqtt_logging import MqttLoggingHandler
+
+
+def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.NOTSET):
+    logging.basicConfig(level=level)
+    root = logging.getLogger()
+    host, port = mqtt_broker.split(":")
+    h = MqttLoggingHandler(
+        user=mqtt_user,
+        password=mqtt_password,
+        broker=host,
+        port=int(port),
+        client_id="extractor",
+        level=level
+    )
+    root.addHandler(h)
 
 
 @click.command()
@@ -30,9 +48,35 @@ from RawDataSource import AbstractRawDataSource
          'https://example.com/minio/f8964b34-d38f-11eb-adae-125e5a40a845',
     required=True, type=str
 )
-def parse(parser_type, target_uri, source_uri, device_id):
+@click.option(
+    'mqtt_broker', '--mqtt-broker', '-m',
+    help='MQTT broker to connect',
+    required=True,
+    show_envvar=True,
+    multiple=True,
+    envvar='MQTT_BROKER'
+)
+@click.option(
+    'mqtt_user', '--mqtt-user', '-u',
+    help='MQTT user',
+    required=True,
+    show_envvar=True,
+    multiple=True,
+    envvar='MQTT_USER'
+)
+@click.option(
+    'mqtt_password', '--mqtt-password', '-p',
+    help='MQTT password',
+    required=True,
+    show_envvar=True,
+    multiple=True,
+    envvar='MQTT_PASSWORD'
+)
+def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """Parse data of a raw data source to a data store."""
 
+    _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.INFO)
+    
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
     # Load the source file
