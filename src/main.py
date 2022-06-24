@@ -15,15 +15,11 @@ def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, thing_id,
                    level=logging.NOTSET):
     logging.basicConfig(level=level)
     root = logging.getLogger()
-    host, port = mqtt_broker.split(":")
     h = MqttLoggingHandler(
-        user=mqtt_user,
-        password=mqtt_password,
-        broker=host,
-        port=int(port),
+        mqtt_broker, mqtt_user, mqtt_password,
+        topic=f"logging/{thing_id}",
         client_id=f"extractor-{os.getpid()}",
         level=level,
-        topic=f"logging/{thing_id}"
     )
     root.addHandler(h)
 
