@@ -1,4 +1,5 @@
 import logging
+import os
 
 import click
 import tsm_datastore_lib
@@ -10,7 +11,8 @@ from RawDataSource import AbstractRawDataSource
 from mqtt_logging import MqttLoggingHandler
 
 
-def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.NOTSET):
+def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, thing_id,
+                   level=logging.NOTSET):
     logging.basicConfig(level=level)
     root = logging.getLogger()
     host, port = mqtt_broker.split(":")
@@ -19,8 +21,9 @@ def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.NOTSET):
         password=mqtt_password,
         broker=host,
         port=int(port),
-        client_id="extractor",
-        level=level
+        client_id=f"extractor-{os.getpid()}",
+        level=level,
+        topic=f"logging/{thing_id}"
     )
     root.addHandler(h)
 
@@ -53,7 +56,6 @@ def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.NOTSET):
     help='MQTT broker to connect',
     required=True,
     show_envvar=True,
-    multiple=True,
     envvar='MQTT_BROKER'
 )
 @click.option(
@@ -61,22 +63,20 @@ def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.NOTSET):
     help='MQTT user',
     required=True,
     show_envvar=True,
-    multiple=True,
     envvar='MQTT_USER'
 )
 @click.option(
-    'mqtt_password', '--mqtt-password', '-p',
+    'mqtt_password', '--mqtt-password', '-pw',
     help='MQTT password',
     required=True,
     show_envvar=True,
-    multiple=True,
     envvar='MQTT_PASSWORD'
 )
 def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """Parse data of a raw data source to a data store."""
 
-    _setup_logging(mqtt_broker, mqtt_user, mqtt_password, level=logging.INFO)
-    
+    _setup_logging(mqtt_broker, mqtt_user, mqtt_password, device_id, level=logging.INFO)
+
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
     # Load the source file
