@@ -7,6 +7,7 @@ import paho.mqtt.client
 
 
 class MqttLoggingHandler(logging.Handler):
+
     def __init__(self, broker, user, password, topic, client_id="", qos=0, level=logging.NOTSET, **mqtt_kwargs):
         super().__init__(level)
         host = broker.split(":")[0]
@@ -40,7 +41,6 @@ class MqttLoggingHandler(logging.Handler):
                 f'MQTT logging failed. Disabling MQTT '
                 f'logging for current process', exc_info=e
             )
-
         except Exception:
             self.handleError(record)
 
