@@ -1,38 +1,50 @@
 #!/usr/bin/env python
 
 import logging
-import warnings
 
-import paho.mqtt.publish as publish
+import paho.mqtt as mqtt
+import paho.mqtt.client
 
 
 class MqttLoggingHandler(logging.Handler):
     def __init__(self, broker, user, password, topic, client_id="", qos=0, level=logging.NOTSET, **mqtt_kwargs):
         super().__init__(level)
-        self.host = broker.split(":")[0]
-        self.port = int(broker.split(":")[1])
-        self.user = user
-        self.password = password
+        host = broker.split(":")[0]
+        port = int(broker.split(":")[1])
+        user = user
+        password = password
+        client_id = client_id
+        
         self.topic = topic
-        self.client_id = client_id
         self.qos = qos
-        self.mqtt_kwargs = mqtt_kwargs
+        self.client = mqtt.client.Client(client_id)
+        self.client.username_pw_set(user, password)
+        self.client.connect(host, port)
+        
+        err = self.client.loop_start()
+        if err is not None:
+            raise mqtt.MQTTException(mqtt.client.error_string(err))
 
     def emit(self, record: logging.LogRecord) -> None:
         # todo document the qos feature
         try:
-            publish.single(
+            self.client.publish(
                 topic=self.topic,
                 payload=self.format(record),
                 qos=record.qos if hasattr(record, "qos") else self.qos,
-                hostname=self.host,
-                port=self.port,
-                client_id=self.client_id,
-                auth={
-                    "username": self.user,
-                    "password": self.password,
-                },
-                **self.mqtt_kwargs
             )
+        except ConnectionError as e:
+            root = logging.getLogger()
+            root.removeHandler(self)
+            logging.exception(
+                f'MQTT logging failed. Disabling MQTT '
+                f'logging for current process', exc_info=e
+            )
+
         except Exception:
             self.handleError(record)
+
+    def close(self) -> None:
+        self.client.loop_stop()
+        self.client.disconnect()
+        super().close()

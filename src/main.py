@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import os
 
@@ -12,7 +13,7 @@ from mqtt_logging import MqttLoggingHandler
 
 
 def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, thing_id,
-                   level=logging.NOTSET):
+                   level: int | str = logging.NOTSET):
     logging.basicConfig(level=level)
     root = logging.getLogger()
     h = MqttLoggingHandler(
