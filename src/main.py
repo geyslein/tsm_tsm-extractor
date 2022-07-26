@@ -6,23 +6,9 @@ import click
 import tsm_datastore_lib
 import Parser
 import RawDataSource
+import mqtt_logging
 from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
-
-from mqtt_logging import MqttLoggingHandler
-
-
-def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, thing_id,
-                   level: int | str = logging.NOTSET):
-    logging.basicConfig(level=level)
-    root = logging.getLogger()
-    h = MqttLoggingHandler(
-        mqtt_broker, mqtt_user, mqtt_password,
-        topic=f"logging/{thing_id}",
-        client_id=f"extractor-{os.getpid()}",
-        level=level,
-    )
-    root.addHandler(h)
 
 
 @click.command()
@@ -72,7 +58,8 @@ def _setup_logging(mqtt_broker, mqtt_user, mqtt_password, thing_id,
 def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """Parse data of a raw data source to a data store."""
 
-    _setup_logging(mqtt_broker, mqtt_user, mqtt_password, device_id, level=logging.INFO)
+    logging.basicConfig(level="DEBUG")
+    mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id, level='DEBUG')
 
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)

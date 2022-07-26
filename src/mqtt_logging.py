@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
+import json
+import os
 import logging
 import paho.mqtt as mqtt
 import paho.mqtt.client
@@ -16,7 +18,6 @@ class MqttLoggingHandler(logging.Handler):
         client_id="",
         qos=0,
         level=logging.NOTSET,
-        **mqtt_kwargs,
     ):
         super().__init__(level)
         host = broker.split(":")[0]
@@ -25,6 +26,7 @@ class MqttLoggingHandler(logging.Handler):
         password = password
         client_id = client_id
 
+        self.name = client_id
         self.topic = topic
         self.qos = qos
         self.client = mqtt.client.Client(client_id)
@@ -46,7 +48,48 @@ class MqttLoggingHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+    def format(self, record: logging.LogRecord) -> str:
+        return json.dumps(
+            dict(
+                timestamp=record.created,
+                level=record.levelname,
+                message=record.message,
+                extra=dict(
+                    filename=record.filename,
+                    pid=record.process,
+                ),
+            )
+        )
+
     def close(self) -> None:
         self.client.loop_stop()
         self.client.disconnect()
         super().close()
+
+
+def setup(
+    name: str,
+    mqtt_broker: str,
+    mqtt_user: str,
+    mqtt_password: str,
+    thing_id: str,
+    level: int | str = logging.WARNING,
+):
+    root = logging.getLogger()
+    name = f"{name}-{os.getpid()}"
+
+    # prevent to add same handler multiple times
+    for h in root.handlers:
+        if h.name == name:
+            return
+
+    handler = MqttLoggingHandler(
+        mqtt_broker,
+        mqtt_user,
+        mqtt_password,
+        topic=f"logging/{thing_id}",
+        client_id=name,
+        level=level,
+    )
+    root.addHandler(handler)
+
