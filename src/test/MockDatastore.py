@@ -16,7 +16,7 @@ class MockDatastore(AbstractDatastore):
     def get_parser_parameters(self, parser_type) -> Dict[str, Any]:
         return self.parser_kwargs
 
-    def initiate_connection(self) -> None:
+    def initiate_connection(self, schema) -> None:
         return None
 
     def store_observations(self, observations: List[Observation]) -> None:
