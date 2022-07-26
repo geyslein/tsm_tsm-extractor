@@ -36,22 +36,20 @@ from RawDataSource import AbstractRawDataSource
 )
 @click.option(
     'mqtt_broker', '--mqtt-broker', '-m',
-    help='MQTT broker to connect',
+    help="MQTT broker to connect. Explicitly pass 'None' to disable mqtt-logging feature.",
     required=True,
     show_envvar=True,
-    envvar='MQTT_BROKER'
+    envvar='MQTT_BROKER',
 )
 @click.option(
     'mqtt_user', '--mqtt-user', '-u',
     help='MQTT user',
-    required=True,
     show_envvar=True,
     envvar='MQTT_USER'
 )
 @click.option(
     'mqtt_password', '--mqtt-password', '-pw',
     help='MQTT password',
-    required=True,
     show_envvar=True,
     envvar='MQTT_PASSWORD'
 )
@@ -59,7 +57,13 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
     """Parse data of a raw data source to a data store."""
 
     logging.basicConfig(level="DEBUG")
-    mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id, level='DEBUG')
+
+    if mqtt_broker != "None":
+        if mqtt_password is None:
+            raise click.MissingParameter("mqtt_password", param_type='parameter')
+        if mqtt_user is None:
+            raise click.MissingParameter("mqtt_user", param_type='parameter')
+        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id, level='DEBUG')
 
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
