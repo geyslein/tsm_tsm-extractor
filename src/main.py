@@ -48,7 +48,7 @@ def cli(verbose):
     '-s', '--source', 'source_uri',
     help='URI of the raw data file to parse. Example: '
          'https://example.com/minio/f8964b34-d38f-11eb-adae-125e5a40a845',
-    required=True, type=str
+    required=True, type=str,
 )
 @click.option(
     'mqtt_broker', '--mqtt-broker', '-m',
@@ -79,40 +79,40 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
             raise click.MissingParameter("mqtt_user", param_type='parameter')
         mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id)
 
-    # Dynamically load the datastore
+    logging.info("load datastore")
     datastore = load_datastore(target_uri, device_id)
-    # Load the source file
+    logging.info("load source file")
     source = RawDataSource.UrlRawDataSource(source_uri)
-    # Dynamically load the parser
+    logging.info("load parser")
     parser = load_parser(parser_type, source, datastore)
-    # Do the parsing work
+    logging.info("parsing.. ")
     parser.do_parse()
-    # Finalize the datastore connections
     datastore.finalize()
-    # Return happiness
+    logging.info("parsing.. done")
     logging.info('😁')
 
 
 def load_datastore(target_uri: str, device_id: int) -> tsm_datastore_lib.AbstractDatastore:
     try:
         datastore = tsm_datastore_lib.get_datastore(target_uri, device_id)
-    except (NotImplementedError) as e:
-        raise click.BadParameter(
-            'No matching datastore type for URI pattern "{}".'.format(target_uri)
-        )
+    except NotImplementedError as e:
+        msg = f'No matching datastore type for URI pattern "{target_uri}"'
+        logging.error(msg)
+        raise click.BadParameter(msg)
     return datastore
 
 
 def load_parser(
         parser_type: str,
         datasource: AbstractRawDataSource, datastore:
-        AbstractDatastore) -> Parser.AbstractParser:
+        AbstractDatastore
+) -> Parser.AbstractParser:
     try:
         parser = Parser.get_parser(parser_type, datasource, datastore)
     except (NotImplementedError, AttributeError) as e:
-        raise click.BadParameter(
-            'Parser "{}" not (completely) implemented yet?'.format(parser_type)
-        )
+        msg = f'Bad parser "{parser_type}". Not (completely) implemented yet?'
+        logging.error(msg)
+        raise click.BadParameter(msg)
     return parser
 
 

@@ -115,13 +115,17 @@ def setup(
         if h.name == name:
             return
 
-    handler = MqttLoggingHandler(
-        mqtt_broker,
-        mqtt_user,
-        mqtt_password,
-        topic=f"logging/{thing_id}",
-        client_id=name,
-        level=level,
-    )
+    try:
+        handler = MqttLoggingHandler(
+            mqtt_broker,
+            mqtt_user,
+            mqtt_password,
+            topic=f"logging/{thing_id}",
+            client_id=name,
+            level=level,
+        )
+    except ConnectionRefusedError as e:
+        raise type(e)(*e.args, "MQTT-Broker down ?") from None
+
     root.addHandler(handler)
 
