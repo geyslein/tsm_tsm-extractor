@@ -73,10 +73,42 @@ def setup(
     mqtt_user: str,
     mqtt_password: str,
     thing_id: str,
-    level: int | str = logging.WARNING,
+    level: int | str | None = None,
 ):
+    """
+    Set up the MQTT logging
+
+    Parameters
+    ----------
+    name : str
+        The name that will appear as the source of log messages
+
+    mqtt_broker : str
+        The broker to send to in the form: `URI:PORT`
+
+    mqtt_user : str
+        Username to register with the broker
+
+    mqtt_password : str
+        Password to register with the broker
+
+    thing_id : str
+        The ID of the thing the log messages belong to. This also
+        determines the mqtt topic, which will set to `logging/THING_ID`.
+
+    level : str, int or None, default None
+        The logging level. Iff `None` the level will be the same as
+        the root-logger of the logging module.
+
+    Returns
+    -------
+    None
+    """
     root = logging.getLogger()
     name = f"{name}-{os.getpid()}"
+
+    if level is None:
+        level = root.level
 
     # prevent to add same handler multiple times
     for h in root.handlers:
