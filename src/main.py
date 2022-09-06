@@ -11,6 +11,22 @@ from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
 
 
+@click.group()
+@click.option(
+    '--verbose', '-v',
+    is_flag=True,
+    help="Print more output.",
+    envvar='VERBOSE',
+    show_envvar=True,
+)
+def cli(verbose):
+    if verbose:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logging.basicConfig(level=level)
+
+
 @click.command()
 @click.option(
     '-p', '--parser', 'parser_type',
@@ -56,14 +72,12 @@ from RawDataSource import AbstractRawDataSource
 def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """Parse data of a raw data source to a data store."""
 
-    logging.basicConfig(level="DEBUG")
-
     if mqtt_broker != "None":
         if mqtt_password is None:
             raise click.MissingParameter("mqtt_password", param_type='parameter')
         if mqtt_user is None:
             raise click.MissingParameter("mqtt_user", param_type='parameter')
-        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id, level='DEBUG')
+        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id)
 
     # Dynamically load the datastore
     datastore = load_datastore(target_uri, device_id)
@@ -76,7 +90,7 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
     # Finalize the datastore connections
     datastore.finalize()
     # Return happiness
-    click.echo('😁')
+    logging.info('😁')
 
 
 def load_datastore(target_uri: str, device_id: int) -> tsm_datastore_lib.AbstractDatastore:
@@ -105,7 +119,7 @@ def load_parser(
 @click.command()
 def version():
     """Display the current version."""
-    click.echo(0)
+    logging.info(0)
 
 
 @click.command(name='list')
@@ -113,18 +127,13 @@ def list_available():
     """Display available datastore, parser and raw data source types."""
     click.secho('Datastore types', bg='green')
     for n in [cls.__name__ for cls in tsm_datastore_lib.AbstractDatastore.__subclasses__()]:
-        click.echo('\t{}'.format(n))
+        click.echo(f'\t{n}')
     click.secho('Parser types', bg='green')
     for n in [cls.__name__ for cls in Parser.AbstractParser.__subclasses__()]:
-        click.echo('\t{}'.format(n))
+        click.echo(f'\t{n}')
     click.secho('Raw data source types', bg='green')
     for n in [cls.__name__ for cls in RawDataSource.AbstractRawDataSource.__subclasses__()]:
-        click.echo('\t{}'.format(n))
-
-
-@click.group()
-def cli():
-    pass
+        click.echo(f'\t{n}')
 
 
 cli.add_command(parse)
