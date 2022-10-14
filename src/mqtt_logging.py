@@ -53,7 +53,7 @@ class MqttLoggingHandler(logging.Handler):
             dict(
                 timestamp=record.created,
                 level=record.levelname,
-                message=record.message,
+                message=record.getMessage(),
                 extra=dict(
                     filename=record.filename,
                     pid=record.process,
