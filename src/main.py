@@ -20,13 +20,8 @@ import mqtt_logging
     envvar='VERBOSE',
     show_envvar=True,
 )
-@click.pass_context
 def cli(verbose):
-    if verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-    logging.basicConfig(level=level)
+    logging.basicConfig(level="DEBUG" if verbose else "INFO")
 
 
 option_mqtt_broker = click.option(
