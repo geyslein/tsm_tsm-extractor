@@ -6,9 +6,10 @@ import click
 import tsm_datastore_lib
 import Parser
 import RawDataSource
-import mqtt_logging
-from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 from RawDataSource import AbstractRawDataSource
+from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
+import qcqa
+import mqtt_logging
 
 
 @click.group()
@@ -19,6 +20,7 @@ from RawDataSource import AbstractRawDataSource
     envvar='VERBOSE',
     show_envvar=True,
 )
+@click.pass_context
 def cli(verbose):
     if verbose:
         level = logging.DEBUG
@@ -27,57 +29,61 @@ def cli(verbose):
     logging.basicConfig(level=level)
 
 
-@click.command()
-@click.option(
-    '-p', '--parser', 'parser_type',
-    help='Name of the parser to use to read the raw data. Should be available from `list` command.',
-    required=True, type=str
-)
-@click.option(
-    '-d', '--device-id', 'device_id',
-    help='UUID of the device (or "thing") which generated the raw data',
-    required=True, type=click.UUID
-)
-@click.option(
-    '-t', '--target-uri', 'target_uri',
-    help='URI of the datastore where the parsed data should be written. Example: '
-         'postgres://user:password@example.com:5432/mydatabase',
-    required=True, type=str
-)
-@click.option(
-    '-s', '--source', 'source_uri',
-    help='URI of the raw data file to parse. Example: '
-         'https://example.com/minio/f8964b34-d38f-11eb-adae-125e5a40a845',
-    required=True, type=str,
-)
-@click.option(
+option_mqtt_broker = click.option(
     'mqtt_broker', '--mqtt-broker', '-m',
     help="MQTT broker to connect. Explicitly pass 'None' to disable mqtt-logging feature.",
     required=True,
     show_envvar=True,
     envvar='MQTT_BROKER',
 )
-@click.option(
+option_mqtt_usr = click.option(
     'mqtt_user', '--mqtt-user', '-u',
     help='MQTT user',
     show_envvar=True,
     envvar='MQTT_USER'
 )
-@click.option(
+option_mqtt_pwd = click.option(
     'mqtt_password', '--mqtt-password', '-pw',
     help='MQTT password',
     show_envvar=True,
     envvar='MQTT_PASSWORD'
 )
-def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
+option_device_id = click.option(
+    '-d', '--device-id', 'device_id',
+    help='UUID of the device (or "thing") which generated the raw data',
+    required=True, type=click.UUID
+)
+option_target_uri = click.option(
+    '-t', '--target-uri', 'target_uri',
+    help='URI of the datastore where the parsed data should be written. Example: '
+         'postgres://user:password@example.com:5432/mydatabase',
+    required=True, type=str
+)
+option_source_uri = click.option(
+    '-s', '--source', 'source_uri',
+    help='URI of the raw data file to parse. Example: '
+         'https://example.com/minio/f8964b34-d38f-11eb-adae-125e5a40a845',
+    required=True, type=str,
+)
+
+
+@cli.command()
+@click.option(
+    '-p', '--parser', 'parser_type',
+    help='Name of the parser to use to read the raw data. Should be available from `list` command.',
+    required=True, type=str
+)
+@option_device_id
+@option_target_uri
+@option_source_uri
+@option_mqtt_broker
+@option_mqtt_usr
+@option_mqtt_pwd
+def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user,
+          mqtt_password):
     """Parse data of a raw data source to a data store."""
 
-    if mqtt_broker != "None":
-        if mqtt_password is None:
-            raise click.MissingParameter("mqtt_password", param_type='parameter')
-        if mqtt_user is None:
-            raise click.MissingParameter("mqtt_user", param_type='parameter')
-        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, thing_id=device_id)
+    setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id)
 
     logging.info("load datastore")
     datastore = load_datastore(target_uri, device_id)
@@ -92,7 +98,38 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
     logging.info('😁')
 
 
-def load_datastore(target_uri: str, device_id: int) -> tsm_datastore_lib.AbstractDatastore:
+@cli.command()
+@option_target_uri
+@option_device_id
+@option_mqtt_broker
+@option_mqtt_usr
+@option_mqtt_pwd
+def run_qcqa(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
+    """ Run quality control pipeline on datastore data.
+
+    Loads data and pipeline config from data store. Then run the
+    quality control functions defined in the config and write
+    the produced quality labels back to the data store
+    """
+    setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id)
+    datastore = load_datastore(target_uri, device_id)
+    config = qcqa.parse_qcqa_config(datastore)
+    data = qcqa.get_data(datastore, config)
+    result = qcqa.run_qcqa_config(data, config)
+
+
+def setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id):
+    if mqtt_broker != "None":
+        if mqtt_password is None:
+            raise click.MissingParameter("mqtt_password", param_type='parameter')
+        if mqtt_user is None:
+            raise click.MissingParameter("mqtt_user", param_type='parameter')
+        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password,
+                           thing_id=device_id)
+
+
+def load_datastore(target_uri: str,
+                   device_id: int) -> tsm_datastore_lib.AbstractDatastore:
     try:
         datastore = tsm_datastore_lib.get_datastore(target_uri, device_id)
     except NotImplementedError as e:
@@ -116,13 +153,13 @@ def load_parser(
     return parser
 
 
-@click.command()
+@cli.command()
 def version():
     """Display the current version."""
     logging.info(0)
 
 
-@click.command(name='list')
+@cli.command(name='list')
 def list_available():
     """Display available datastore, parser and raw data source types."""
     click.secho('Datastore types', bg='green')
@@ -135,10 +172,6 @@ def list_available():
     for n in [cls.__name__ for cls in RawDataSource.AbstractRawDataSource.__subclasses__()]:
         click.echo(f'\t{n}')
 
-
-cli.add_command(parse)
-cli.add_command(list_available)
-cli.add_command(version)
 
 if __name__ == '__main__':
     cli()
