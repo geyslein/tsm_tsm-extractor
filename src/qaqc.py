@@ -53,25 +53,6 @@ def parse_window(window) -> pd.Timedelta | int:
     return window
 
 
-def get_datastream(datastore, position) -> Datastream:
-    # todo: integrate this into datastore_lib
-    thing: Thing = datastore.sqla_thing
-    name = f"{thing.name}/{position}"
-
-    # Lookup simple cache at first
-    stream = datastore.sqla_datastream_cache.get(name, None)
-
-    # cache miss
-    if stream is None:
-        stream = (
-            datastore.session.query(Datastream).filter(Datastream.name == name).first()
-        )
-        # update cache
-        if stream is not None:
-            datastore.sqla_datastream_cache[name] = stream
-    return stream
-
-
 def get_datastream_data(
     datastore: SqlAlchemyDatastore,
     datastream: Datastream,
@@ -175,7 +156,7 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame):
     for pos in unique_pos:
         var_name = str(pos)
 
-        datastream = get_datastream(datastore, pos)
+        datastream = datastore.get_datastream(pos)
         if datastream is None:
             logging.warning(f"no datastream for {pos=}")
             data[var_name] = dummy
