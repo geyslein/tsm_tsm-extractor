@@ -8,7 +8,7 @@ import Parser
 import RawDataSource
 from RawDataSource import AbstractRawDataSource
 from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
-import qcqa
+import qaqc
 import mqtt_logging
 
 
@@ -108,9 +108,9 @@ def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """
     setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id)
     datastore = load_datastore(target_uri, device_id)
-    config = qcqa.parse_qcqa_config(datastore)
-    data = qcqa.get_data(datastore, config)
-    result = qcqa.run_qcqa_config(data, config)
+    config = qaqc.parse_qaqc_config(datastore)
+    data = qaqc.get_data(datastore, config)
+    result = qaqc.run_qaqc_config(data, config)
 
 
 def setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id):

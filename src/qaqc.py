@@ -20,10 +20,10 @@ import saqc
 from saqc.core.core import DictOfSeries
 
 
-def parse_qcqa_config(datastore):
+def parse_qaqc_config(datastore):
     thing = datastore.sqla_thing
-    idx = thing.properties["QCQA"]["default"]
-    config = thing.properties["QCQA"]["configs"][idx]
+    idx = thing.properties["QAQC"]["default"]
+    config = thing.properties["QAQC"]["configs"][idx]
 
     if config["type"] != "SaQC":
         raise NotImplementedError("only configs of type SaQC are supported currently")
@@ -196,7 +196,7 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame):
     return saqc.SaQC(data)
 
 
-def run_qcqa_config(data: saqc.SaQC, config: pd.DataFrame):
+def run_qaqc_config(data: saqc.SaQC, config: pd.DataFrame):
     for idx, row in config.iterrows():
         # var is position for now, until SMS is inplace
         var = str(row["position"])
