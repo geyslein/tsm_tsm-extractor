@@ -99,7 +99,7 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
 @option_mqtt_broker
 @option_mqtt_usr
 @option_mqtt_pwd
-def run_qcqa(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
+def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """ Run quality control pipeline on datastore data.
 
     Loads data and pipeline config from data store. Then run the
