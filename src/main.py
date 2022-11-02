@@ -68,9 +68,9 @@ option_source_uri = click.option(
     help='Name of the parser to use to read the raw data. Should be available from `list` command.',
     required=True, type=str
 )
-@option_device_id
 @option_target_uri
 @option_source_uri
+@option_device_id
 @option_mqtt_broker
 @option_mqtt_usr
 @option_mqtt_pwd
