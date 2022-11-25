@@ -1,6 +1,9 @@
 from __future__ import annotations
+
+import json
 import logging
 import os
+import warnings
 
 import click
 import tsm_datastore_lib
@@ -10,6 +13,9 @@ from RawDataSource import AbstractRawDataSource
 from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 import qaqc
 import mqtt_logging
+
+import paho.mqtt as mqtt
+import paho.mqtt.client
 
 
 @click.group()
@@ -78,7 +84,9 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
           mqtt_password):
     """Parse data of a raw data source to a data store."""
 
-    setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id)
+    check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password)
+    mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, device_id)
+    client = setup_mqtt_client(mqtt_broker, mqtt_user, mqtt_password, device_id)
 
     logging.info("load datastore")
     datastore = load_datastore(target_uri, device_id)
@@ -90,6 +98,13 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
     parser.do_parse()
     datastore.finalize()
     logging.info("parsing.. done")
+
+    # inform the broker, that parsing is done.
+    client.publish(
+        topic='data_parsed',
+        payload=json.dumps(dict(thing_uuid=str(device_id), db_uri=target_uri)),
+    )
+    client.loop_stop()
     logging.info('😁')
 
 
@@ -106,21 +121,46 @@ def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     quality control functions defined in the config and write
     the produced quality labels back to the data store
     """
-    setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id)
+    check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password)
+    mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, device_id)
     datastore = load_datastore(target_uri, device_id)
     config = qaqc.parse_qaqc_config(datastore)
     data = qaqc.get_data(datastore, config)
     result = qaqc.run_qaqc_config(data, config)
 
 
-def setup_mqtt(mqtt_broker, mqtt_user, mqtt_password, device_id):
-    if mqtt_broker != "None":
-        if mqtt_password is None:
-            raise click.MissingParameter("mqtt_password", param_type='parameter')
-        if mqtt_user is None:
-            raise click.MissingParameter("mqtt_user", param_type='parameter')
-        mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password,
-                           thing_id=device_id)
+def check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password):
+    if mqtt_broker == "None":
+        raise click.BadParameter(
+            "Passing 'None' as mqtt_broker is deprecated. "
+            "The parser need MQTT, because it must report "
+            "to the broker that the parsing is done."
+        )
+    if mqtt_password is None:
+        raise click.MissingParameter("mqtt_password", param_type='parameter')
+    if mqtt_user is None:
+        raise click.MissingParameter("mqtt_user", param_type='parameter')
+
+
+def setup_mqtt_client(mqtt_broker, mqtt_user, mqtt_password, device_id):
+    """
+    setup client for workflow mqtt-messages, e.g. 'parsing_done'.
+
+    Notes
+    -----
+    Returned client already was started.
+    Call ``client.stop_loop()`` on teardown,
+    to ensure all messages was send.
+    """
+    host = mqtt_broker.split(":")[0]
+    port = int(mqtt_broker.split(":")[1])
+    client = mqtt.client.Client(f"parser-{os.getpid()}")
+    client.username_pw_set(mqtt_user, mqtt_password)
+    client.connect(host, port)
+    err = client.loop_start()
+    if err is not None:
+        raise mqtt.MQTTException(mqtt.client.error_string(err))
+    return client
 
 
 def load_datastore(target_uri: str,
