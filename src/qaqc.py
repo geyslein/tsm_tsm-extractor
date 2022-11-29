@@ -18,6 +18,7 @@ from typing import Dict, Callable, List
 import pandas as pd
 from pandas.api.types import is_integer
 import saqc
+from saqc.core.history import History
 from saqc.core.core import DictOfSeries
 
 
@@ -167,12 +168,22 @@ def get_datastream_data(
     return pd.concat([main_data, window_data], sort=True, copy=False)
 
 
-def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame):
-    if config.empty:
-        return
+def get_unique_positions(config) -> pd.Index:
+    return pd.Index(config["position"].unique())
 
-    unique_pos = config["position"].unique()
-    data = DictOfSeries(columns=list(map(str, unique_pos)))
+
+def position_to_varname(pos: int) -> str:
+    """
+    Dummy function.
+    In a future version this should translate positions
+    to real variable names via SMS-API.
+    """
+    return str(pos)
+
+
+def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
+    unique_pos = get_unique_positions(config)
+    data = DictOfSeries(columns=unique_pos.map(position_to_varname))
 
     # hint: window is the same for whole config
     window = config.loc[0, "window"]
@@ -180,7 +191,7 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame):
     dummy = pd.Series([], dtype=float, index=pd.DatetimeIndex([]))
 
     for pos in unique_pos:
-        var_name = str(pos)
+        var_name = position_to_varname(pos)
 
         datastream = datastore.get_datastream(pos)
         if datastream is None:
@@ -221,22 +232,63 @@ def run_qaqc_config(data: saqc.SaQC, config: pd.DataFrame):
         Hold data and quality labels (aka. flags).
     """
     for idx, row in config.iterrows():
-        # We use the position as variable name
-        # for now, until SMS is inplace and can
-        # provide better naming.
-        var = str(row["position"])
+        var = position_to_varname(row["position"])
         func = row["function"]
         kwargs = row["kwargs"]
-        info = config.loc[idx].to_dict()
-        data = _run_saqc_funtion(data, var, func, kwargs, info)
+        info = row.to_dict()
+        data = _run_saqc_function(data, var, func, kwargs, info)
 
     return data
 
 
-def _run_saqc_funtion(
-    qc_obj: saqc.SaQC, var_name: str, func_name: str, kwargs: dict, info: dict
+def _run_saqc_function(
+        qc_obj: saqc.SaQC, var_name: str, func_name: str, kwargs: dict, info: dict
 ):
     method = getattr(qc_obj, func_name, None)
     logging.debug(f"running SaQC with {info=}")
     qc_obj = method(var_name, **kwargs)
     return qc_obj
+
+
+def _last_test(history: History) -> pd.Series:
+    """ add as method to History(). """
+    h = history.hist.astype(float)
+    return h.apply(pd.Series.last_valid_index, axis=1)
+
+
+def _map_meta(history: History) -> pd.Series:
+    """
+    add as method to History().
+    Note: this keep NaNs
+    """
+    meta = history.meta
+    def _map(pos): return str(meta[int(pos)])
+    return _last_test(history).map(_map, na_action='ignore')
+
+
+def _to_json(history: History) -> pd.DataFrame:
+    """ add as method to Flags(). """
+    # {"flag": 255.0, "function": "flagRange", "kwargs": {"min": 0, "max": 100}}
+    # flags = history.squeeze(raw=True)
+    labels = _map_meta(history)
+    flags = "flag: \'" + history.squeeze().astype(str) + "\'"
+    labels = labels.str[0] + flags + ', ' + labels[1:]
+    labels = labels.fillna('{}')
+    return labels
+
+
+def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchemyDatastore):
+
+    # we don't want data-derivates to be uploaded.
+    # So we can't use all columns from data.
+    # see also: #GL25
+    # https://git.ufz.de/rdm-software/timeseries-management/tsm-extractor/-/issues/25
+    columns = get_unique_positions(config).map(position_to_varname)
+    for var in columns:
+        labels = _to_json(data._flags.history[var])
+        print()
+        print(labels)
+
+
+def _upload_qc_labels(datastore, labels: pd.Series):
+    pass

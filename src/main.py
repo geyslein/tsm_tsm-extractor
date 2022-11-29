@@ -138,9 +138,15 @@ def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
         mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, device_id)
     logging.info("load datastore")
     datastore = load_datastore(target_uri, device_id)
+    logging.info("parse config")
     config = qaqc.parse_qaqc_config(datastore)
+    logging.info("load data")
     data = qaqc.get_data(datastore, config)
+    logging.info("run QAQC setup")
     result = qaqc.run_qaqc_config(data, config)
+    logging.info("upload quality labels")
+    qaqc.upload_qc_labels(result, config, datastore)
+    logging.info("QAQC done.")
 
 
 def check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password):
