@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime
 import warnings
 
+import numpy as np
 from tsm_datastore_lib import SqlAlchemyDatastore
 from tsm_datastore_lib.SqlAlchemy.Model import Observation, Thing, Datastream
 
@@ -251,29 +252,28 @@ def _run_saqc_function(
 
 
 def _last_test(history: History) -> pd.Series:
-    """ add as method to History(). """
-    h = history.hist.astype(float)
-    return h.apply(pd.Series.last_valid_index, axis=1)
-
-
-def _map_meta(history: History) -> pd.Series:
     """
     add as method to History().
     Note: this keep NaNs
     """
-    meta = history.meta
-    def _map(pos): return str(meta[int(pos)])
-    return _last_test(history).map(_map, na_action='ignore')
+    h = history.hist.astype(float)
+    return h.apply(pd.Series.last_valid_index, axis=1)
 
 
-def _to_json(history: History) -> pd.DataFrame:
+def _map_meta(history: History) -> pd.DataFrame:
+    """
+    add as method to History().
+    Note: this keep NaNs
+    """
+    def _map(pos, meta):
+        return pd.Series(None if np.isnan(pos) else meta[int(pos)], dtype=object)
+    return _last_test(history).apply(_map, meta=history.meta)
+
+
+def _get_quality(history: History) -> pd.DataFrame:
     """ add as method to Flags(). """
-    # {"flag": 255.0, "function": "flagRange", "kwargs": {"min": 0, "max": 100}}
-    # flags = history.squeeze(raw=True)
     labels = _map_meta(history)
-    flags = "flag: \'" + history.squeeze().astype(str) + "\'"
-    labels = labels.str[0] + flags + ', ' + labels[1:]
-    labels = labels.fillna('{}')
+    labels['flag'] = history.squeeze(raw=True)
     return labels
 
 
@@ -285,9 +285,7 @@ def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchem
     # https://git.ufz.de/rdm-software/timeseries-management/tsm-extractor/-/issues/25
     columns = get_unique_positions(config).map(position_to_varname)
     for var in columns:
-        labels = _to_json(data._flags.history[var])
-        print()
-        print(labels)
+        labels = _get_quality(data._flags.history[var])
 
 
 def _upload_qc_labels(datastore, labels: pd.Series):
