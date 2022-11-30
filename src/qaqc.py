@@ -166,7 +166,7 @@ def get_datastream_data(
         index_col="result_time",
     )
 
-    return pd.concat([main_data, window_data], sort=True, copy=False)
+    return pd.concat([main_data, window_data], copy=False).sort_index()
 
 
 def get_unique_positions(config) -> pd.Index:
@@ -180,6 +180,15 @@ def position_to_varname(pos: int) -> str:
     to real variable names via SMS-API.
     """
     return str(pos)
+
+
+def varname_to_position(name: str) -> int:
+    """
+    Dummy function.
+    In a future version this should translate
+    varnames to positions via SMS-API.
+    """
+    return int(name)
 
 
 def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
@@ -253,7 +262,7 @@ def _run_saqc_function(
 
 def _last_test(history: History) -> pd.Series:
     """
-    add as method to History().
+    todo: add as method to History().
     Note: this keep NaNs
     """
     h = history.hist.astype(float)
@@ -262,7 +271,7 @@ def _last_test(history: History) -> pd.Series:
 
 def _map_meta(history: History) -> pd.DataFrame:
     """
-    add as method to History().
+    todo: add as method to History().
     Note: this keep NaNs
     """
     def _map(pos, meta):
@@ -270,23 +279,47 @@ def _map_meta(history: History) -> pd.DataFrame:
     return _last_test(history).apply(_map, meta=history.meta)
 
 
-def _get_quality(history: History) -> pd.DataFrame:
-    """ add as method to Flags(). """
+def _get_quality_information(history: History) -> pd.DataFrame:
+    """ todo: add as method to Flags(). """
     labels = _map_meta(history)
     labels['flag'] = history.squeeze(raw=True)
     return labels
 
 
 def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchemyDatastore):
-
     # we don't want data-derivates to be uploaded.
     # So we can't use all columns from data.
     # see also: #GL25
     # https://git.ufz.de/rdm-software/timeseries-management/tsm-extractor/-/issues/25
-    columns = get_unique_positions(config).map(position_to_varname)
-    for var in columns:
-        labels = _get_quality(data._flags.history[var])
+    positions = get_unique_positions(config)
+    for pos in positions:
+        var = position_to_varname(pos)
+        df = _get_quality_information(data._flags.history[var])
+        _upload_qc_labels(datastore, pos, df)
 
 
-def _upload_qc_labels(datastore, labels: pd.Series):
-    pass
+def update_observation(datastore: SqlAlchemyDatastore, datastream, result_time: pd.Timestamp, to_update: dict) -> None:
+    """ todo: add to SqlAlchemyDatastore """
+    datastore.session.query(Observation).filter(
+        Observation.datastream == datastream,
+        Observation.result_time == result_time
+    ).update({**to_update})
+
+
+def _upload_qc_labels(datastore, position: int, df: pd.DataFrame):
+    store: SqlAlchemyDatastore = datastore
+    stream = datastore.get_datastream(position)
+
+    def update(row: pd.Series):
+        idx: pd.Timestamp = row.name  # index in outer df
+        if np.isnan(row['flag']):
+            jsonb_data = dict()
+        else:
+            jsonb_data = dict(row)
+        update_observation(store, stream, idx, dict(result_quality=jsonb_data))
+
+    # todo apply str for (kw-)args that are not allowed in jsonb
+    df['args'] = df['args'].copy(False).astype(str)
+    df['kwargs'] = df['kwargs'].copy(False).astype(str)
+    df.apply(update, axis=1)
+    datastore.session.commit()
