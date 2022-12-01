@@ -7,6 +7,8 @@ import warnings
 
 import click
 import tsm_datastore_lib
+from sqlalchemy.exc import SAWarning
+
 import Parser
 import RawDataSource
 from RawDataSource import AbstractRawDataSource
@@ -231,4 +233,9 @@ def list_available():
 
 
 if __name__ == '__main__':
+    warnings.filterwarnings(
+        action="ignore",
+        category=SAWarning,
+        message=r".*TypeDecorator JSONField\(\) will not produce a cache key.*",
+    )
     cli()
