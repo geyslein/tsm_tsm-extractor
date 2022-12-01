@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-import datetime
+import json
+import typing
 import warnings
 
 import numpy as np
@@ -12,9 +13,6 @@ from tsm_datastore_lib.SqlAlchemy.Model import Observation, Thing, Datastream
 
 import logging
 import sqlalchemy
-from functools import lru_cache
-from collections import OrderedDict
-from typing import Dict, Callable, List
 
 import pandas as pd
 from pandas.api.types import is_integer
@@ -260,27 +258,40 @@ def _run_saqc_function(
     return qc_obj
 
 
-def _last_test(history: History) -> pd.Series:
+def _last_valid_test(history: History) -> pd.Series:
     """
-    todo: add as method to History().
-    Note: this keep NaNs
+    todo: add this to saqc.History().
+    Note:
+        - may has NaNs
+        - dtype: float, but int'ish (w/ NaNs)
     """
-    h = history.hist.astype(float)
-    return h.apply(pd.Series.last_valid_index, axis=1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='.*dtype for empty Series', category=FutureWarning)
+        return history.hist.astype(float).agg(pd.Series.last_valid_index, axis=1)
 
 
 def _map_meta(history: History) -> pd.DataFrame:
     """
-    todo: add as method to History().
-    Note: this keep NaNs
+    todo: add this to saqc.History().
+    Note:
+        - has rows with all NaNs, if never flagged
+        - columns: ['func', 'args', 'kwargs']
+        - dtype: object
     """
+    columns = pd.Index(['func', 'args', 'kwargs'])
+    if history.columns.empty or history.index.empty:
+        # todo: this should be the condition for History.empty
+        return pd.DataFrame(index=history.index, columns=columns, dtype=object)
+
     def _map(pos, meta):
         return pd.Series(None if np.isnan(pos) else meta[int(pos)], dtype=object)
-    return _last_test(history).apply(_map, meta=history.meta)
+
+    df = _last_valid_test(history).apply(_map, meta=history.meta)
+    return df.reindex(columns, axis=1)
 
 
 def _get_quality_information(history: History) -> pd.DataFrame:
-    """ todo: add as method to Flags(). """
+    """ todo: add this to saqc.Flags(). """
     labels = _map_meta(history)
     labels['flag'] = history.squeeze(raw=True)
     return labels
@@ -299,11 +310,29 @@ def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchem
 
 
 def update_observation(datastore: SqlAlchemyDatastore, datastream, result_time: pd.Timestamp, to_update: dict) -> None:
-    """ todo: add to SqlAlchemyDatastore """
+    """ todo: add this to tsm_datastore_lib.SqlAlchemyDatastore """
+    # prevent cross-scripting, by disallowing 'null' and other values
+    if not isinstance(result_time, pd.Timestamp):
+        raise TypeError(type(result_time).__name__)
     datastore.session.query(Observation).filter(
         Observation.datastream == datastream,
         Observation.result_time == result_time
-    ).update({**to_update})
+    ).update(to_update)
+
+
+def to_jsonb(obj: typing.Any) -> dict | list | str | int | float | True | False | None:
+    """
+    Make any python object jsonb compatible.
+
+    Any object (or inner item or sub object) that cannot
+    be represented by the supported types, will be converted
+    to a string representation, by simply calling `str` on it.
+    Natively supported types are dict, list, str, int, float,
+    True, False and None.
+    """
+    # default=str: use str() to parse non json-serializable objects
+    # parse_constant=str: use str() for -Infinity/Infinity/NaN
+    return json.loads(json.dumps(obj, default=str), parse_constant=str)
 
 
 def _upload_qc_labels(datastore, position: int, df: pd.DataFrame):
@@ -311,15 +340,12 @@ def _upload_qc_labels(datastore, position: int, df: pd.DataFrame):
     stream = datastore.get_datastream(position)
 
     def update(row: pd.Series):
-        idx: pd.Timestamp = row.name  # index in outer df
+        idx: pd.Timestamp = row.name  # index in df
         if np.isnan(row['flag']):
-            jsonb_data = dict()
+            data = dict()
         else:
-            jsonb_data = dict(row)
-        update_observation(store, stream, idx, dict(result_quality=jsonb_data))
+            data = dict(row)
+        update_observation(store, stream, idx, {'result_quality': to_jsonb(data)})
 
-    # todo apply str for (kw-)args that are not allowed in jsonb
-    df['args'] = df['args'].copy(False).astype(str)
-    df['kwargs'] = df['kwargs'].copy(False).astype(str)
     df.apply(update, axis=1)
     datastore.session.commit()
