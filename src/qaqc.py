@@ -198,6 +198,13 @@ def varname_to_position(name: str) -> int:
     return int(name)
 
 
+def _extract_by_result_type(df: pd.DataFrame) -> pd.Series:
+    """ Selects the column, specified as integer in the column 'result_type'. """
+    def select(arr: np.ndarray): return arr[1+arr[0]]
+    columns = pd.Index(['result_type', 'result_number', 'result_string', 'result_json', 'result_boolean'])
+    return df[columns].apply(select, axis=1, raw=True)
+
+
 def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
     unique_pos = get_unique_positions(config)
     data = DictOfSeries(columns=unique_pos.map(position_to_varname))
@@ -224,8 +231,13 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
             data[var_name] = dummy
             continue
 
-        # todo: evaluate 'result_type'
-        data[var_name] = raw["result_number"]
+        try:
+            data[var_name] = _extract_by_result_type(raw)
+        except IndexError:
+            logging.exception(f"extraction of data failed for {datastream.name=}")
+            continue
+
+
 
     return saqc.SaQC(data)
 
