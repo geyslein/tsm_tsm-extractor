@@ -237,8 +237,6 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
             logging.exception(f"extraction of data failed for {datastream.name=}")
             continue
 
-
-
     return saqc.SaQC(data)
 
 

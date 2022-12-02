@@ -15,9 +15,26 @@ from RawDataSource import AbstractRawDataSource
 from tsm_datastore_lib.AbstractDatastore import AbstractDatastore
 import qaqc
 import mqtt_logging
+import contextlib
 
 import paho.mqtt as mqtt
 import paho.mqtt.client
+
+
+@contextlib.contextmanager
+def log_on_error(msg: str, *args, level='error', exc_info=True, stack_info=False, extra=None):
+    level = logging.getLevelName(level.upper())
+    if isinstance(level, str):
+        raise TypeError('level must be integer')
+    try:
+        yield
+    except Exception as e:
+        if exc_info is True:
+            # hide the 'log_on_error()' call
+            e.__traceback__ = e.__traceback__.tb_next
+            exc_info = e
+        logging.log(level, msg, *args, exc_info=exc_info, stack_info=stack_info, extra=extra)
+        raise e
 
 
 class _DummyClient(mqtt.client.Client):
@@ -103,16 +120,16 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
     else:
         client = _DummyClient()
 
-    logging.info("load datastore")
-    datastore = load_datastore(target_uri, device_id)
-    logging.info("load source file")
-    source = RawDataSource.UrlRawDataSource(source_uri)
-    logging.info("load parser")
-    parser = load_parser(parser_type, source, datastore)
-    logging.info("parsing.. ")
-    parser.do_parse()
-    datastore.finalize()
-    logging.info("parsing.. done")
+    with log_on_error(f"Parser: loading datastore failed"):
+        datastore = load_datastore(target_uri, device_id)
+    with log_on_error(f"Parser: loading source file failed"):
+        source = RawDataSource.UrlRawDataSource(source_uri)
+    with log_on_error(f"Parser: loading parser failed"):
+        parser = load_parser(parser_type, source, datastore)
+    with log_on_error(f"Parser: parsing with parser={parser_type!r} failed"):
+        parser.do_parse()
+        datastore.finalize()
+    logging.info("Parser: successfully parsed data")
 
     # inform the broker, that parsing is done.
     client.publish(
@@ -120,7 +137,6 @@ def parse(parser_type, target_uri, source_uri, device_id, mqtt_broker, mqtt_user
         payload=json.dumps(dict(thing_uuid=str(device_id), db_uri=target_uri)),
     )
     client.loop_stop()
-    logging.info('😁')
 
 
 @cli.command()
@@ -138,17 +154,19 @@ def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     """
     if check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password):
         mqtt_logging.setup('extractor', mqtt_broker, mqtt_user, mqtt_password, device_id)
-    logging.info("load datastore")
-    datastore = load_datastore(target_uri, device_id)
-    logging.info("parse config")
-    config = qaqc.parse_qaqc_config(datastore)
-    logging.info("load data")
-    data = qaqc.get_data(datastore, config)
-    logging.info("run QAQC setup")
-    result = qaqc.run_qaqc_config(data, config)
-    logging.info("upload quality labels")
-    qaqc.upload_qc_labels(result, config, datastore)
-    logging.info("QAQC done.")
+
+    with log_on_error(f"QA/QC: loading datastore failed"):
+        datastore = load_datastore(target_uri, device_id)
+        logging.info("parse config")
+    with log_on_error(f"QA/QC: parsing QA/QC-configuration failed"):
+        config = qaqc.parse_qaqc_config(datastore)
+    with log_on_error(f"QA/QC: loading data failed"):
+        data = qaqc.get_data(datastore, config)
+    with log_on_error(f"QA/QC: running QA/QC-configuration on data failed"):
+        result = qaqc.run_qaqc_config(data, config)
+    with log_on_error(f"QA/QC: uploading quality labels failed"):
+        qaqc.upload_qc_labels(result, config, datastore)
+    logging.info("QA/QC: successfully run configuration; all quality labels uploaded.")
 
 
 def check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password):
