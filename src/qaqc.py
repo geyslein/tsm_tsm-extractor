@@ -19,6 +19,7 @@ from pandas.api.types import is_integer
 import saqc
 from saqc.core.history import History
 from saqc.core.core import DictOfSeries
+from tsm_datastore_lib.SqlAlchemyDatastore import DatastreamNotFoundError
 
 
 def parse_qaqc_config(datastore):
@@ -36,11 +37,19 @@ def parse_qaqc_config(datastore):
     Parameters
     ----------
     datastore : SqlAlchemyDatastore
-        The datastore to fetch the config from/for.
+        The datastore to fetch the config from and for.
 
     Notes
     -----
-    The window column always have the same value over all rows.
+    The resulting config dataframe will have these columns:
+     - 'position' : The datastream position to fetch the data,
+        to be quality controlled (regular data).
+     - 'window' : The (context) window. A non-negative integer
+        or time-offset string, defining the range of data to
+        fetch additionaly before the first regular observation.
+        The window will have the same value over all rows.
+     - 'function' : The function to execute on the data.
+     - 'kwargs' : The arguments to pass to the function.
 
     Returns
     -------
@@ -51,7 +60,8 @@ def parse_qaqc_config(datastore):
     config = thing.properties["QAQC"]["configs"][idx]
 
     if config["type"] != "SaQC":
-        raise NotImplementedError("only QA/QC configurations of type 'SaQC' are currently supported")
+        raise NotImplementedError("only QA/QC configurations of type "
+                                  "'SaQC' are currently supported")
     else:
         logging.debug(f"raw-config: {config}")
 
@@ -115,7 +125,6 @@ def get_datastream_data(
 
     # no new observations
     if more_recent is None:
-        # todo: throw warning ?
         return None
     else:
         more_recent = more_recent[0]
@@ -199,19 +208,19 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
     dummy = pd.Series([], dtype=float, index=pd.DatetimeIndex([]))
 
     for pos, var_name in zip(unique_pos, data.columns):
-
-        datastream = datastore.get_datastream(pos)
-        if datastream is None:
-            logging.warning(f"no datastream for {pos=}")
+        try:
+            datastream = datastore.get_datastream(pos)
+        except DatastreamNotFoundError:
+            logging.warning(f"no datastream for position {pos}")
             data[var_name] = dummy
             continue
-
-        # keep track of the source datastream for debugging etc.
-        config.loc[config["position"] == pos, "datastream_name"] = datastream.name
+        else:
+            # keep track of the source datastream for debugging etc.
+            config.loc[config["position"] == pos, "datastream_name"] = datastream.name
 
         raw = get_datastream_data(datastore, datastream, window)
         if raw is None:
-            logging.warning(f"no data for {datastream.name=}")
+            logging.info(f"no data for {datastream.name=}")
             data[var_name] = dummy
             continue
 
