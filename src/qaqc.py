@@ -51,7 +51,7 @@ def parse_qaqc_config(datastore):
     config = thing.properties["QAQC"]["configs"][idx]
 
     if config["type"] != "SaQC":
-        raise NotImplementedError("only configs of type SaQC are supported currently")
+        raise NotImplementedError("only QA/QC configurations of type 'SaQC' are currently supported")
     else:
         logging.debug(f"raw-config: {config}")
 
@@ -198,8 +198,7 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
 
     dummy = pd.Series([], dtype=float, index=pd.DatetimeIndex([]))
 
-    for pos in unique_pos:
-        var_name = position_to_varname(pos)
+    for pos, var_name in zip(unique_pos, data.columns):
 
         datastream = datastore.get_datastream(pos)
         if datastream is None:
