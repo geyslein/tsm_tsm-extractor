@@ -220,7 +220,7 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
     Notes
     -----
     The window in config is defined as int or pandas.Timedelta
-    and describe the context window of data to fetch additionally.
+    and describes the context window of data to fetch additionally.
 
     If an integer, it defines the number of preceding observations to
     fetch additionally, before the first unprocessed observation.
@@ -347,7 +347,7 @@ def _get_quality_information(history: History) -> pd.DataFrame:
     return labels
 
 
-def _remove_context_window(df: pd.DataFrame, idx: pd.Index | None) -> pd.DataFrame:
+def _remove_context_window(df: pd.DataFrame, idx: pd.Index | None = None) -> pd.DataFrame:
     """  Drops index from dataframe; ignores non-existent labels. """
     return df if idx is None else df.drop(idx, errors='ignore')
 
