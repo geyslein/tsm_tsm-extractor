@@ -84,10 +84,66 @@ def parse_window(window) -> pd.Timedelta | int:
     return window
 
 
-def get_datastream_data(
+def get_context_window_data(
+        datastore: SqlAlchemyDatastore,
+        datastream: Datastream,
+        timestamp: pd.Timestamp,
+        window: int | pd.Timedelta,
+) -> pd.DataFrame:
+    """
+    Get a window of data before a given timestamp.
+
+    Parameters
+    ----------
+    datastore : SqlAlchemyDatastore
+        Datastore to use.
+
+    datastream : Datastream
+        Datastream to fetch the data from
+
+    timestamp : pd.Timestamp
+        The upper boundary of data to fetch. In
+        other words the timestamp at which the
+        data is loaded relatively.
+
+    window : int or pandas.Timedelta
+        The context window of data to fetch additionally.
+        If an integer, it defines the number of preceding observations to
+        fetch, if a Timedelta, it defines an offset-window to fetch additionally
+        before the timestamp.
+
+    Notes
+    -----
+    The timestamp is excluded from the result.
+
+    Returns
+    -------
+    data: pd.DataFrame
+    """
+    if is_integer(window):  # detect numpy.int64
+        query = datastore.session.query(Observation).filter(
+            Observation.datastream == datastream,
+            Observation.result_time < timestamp,
+        ).order_by(sqlalchemy.desc(Observation.result_time)).limit(window)
+    else:
+        query = datastore.session.query(Observation).filter(
+            Observation.datastream == datastream,
+            Observation.result_time < timestamp,
+            Observation.result_time >= timestamp - window,
+        )
+
+    df: pd.DataFrame = pd.read_sql(
+        query.statement,
+        query.session.bind,
+        parse_dates=True,
+        index_col="result_time",
+    )
+    return df.sort_index()
+
+
+def get_unprocessed_data(
     datastore: SqlAlchemyDatastore,
     datastream: Datastream,
-    window: int | pd.Timedelta,
 ) -> pd.DataFrame | None:
     """
     Get data that has no quality flags yet.
@@ -100,18 +156,6 @@ def get_datastream_data(
     datastream : Datastream
         Datastream to fetch the data from
 
-    window : int or pandas.Timedelta
-        The context window of data to fetch additionally.
-
-        If an integer, it defines the number of preceding observations to
-        fetch additionally, before the first unprocessed observation.
-
-        If a Timedelta, it defines an offset-window to fetch additionally
-        before the timestamp of the first unprocessed observation.
-
-        The first unprocessed observation is the earliest observation
-        which never was quality-controlled before.
-
     Returns
     -------
     data: pd.DataFrame or None
@@ -123,57 +167,21 @@ def get_datastream_data(
     more_recent = query.order_by(sqlalchemy.desc(Observation.result_time)).first()
     less_recent = query.order_by(sqlalchemy.asc(Observation.result_time)).first()
 
-    # no new observations
     if more_recent is None:
-        return None
-    else:
-        more_recent = more_recent[0]
-        less_recent = less_recent[0]
+        return None  # no new observations
 
-    base_query = datastore.session.query(Observation).filter(
-        Observation.datastream == datastream
+    query = datastore.session.query(Observation).filter(
+        Observation.datastream == datastream,
+        Observation.result_time <= more_recent[0],
+        Observation.result_time >= less_recent[0],
     )
-
-    # get all new (unprocessed) data
-    query = base_query.filter(
-        Observation.result_time <= more_recent,
-        Observation.result_time >= less_recent,
-    )
-    main_data: pd.DataFrame = pd.read_sql(
+    data: pd.DataFrame = pd.read_sql(
         query.statement,
         query.session.bind,
         parse_dates=True,
         index_col="result_time",
     )
-
-    if main_data.empty:
-        return None
-
-    # numeric window
-    if is_integer(window):  # detect numpy.int64
-        query = (
-            base_query.filter(
-                Observation.result_time < less_recent,
-            )
-            .order_by(sqlalchemy.desc(Observation.result_time))
-            .limit(window)
-        )
-
-    # datetime window
-    else:
-        query = base_query.filter(
-            Observation.result_time < less_recent,
-            Observation.result_time >= less_recent - window,
-        )
-
-    window_data: pd.DataFrame = pd.read_sql(
-        query.statement,
-        query.session.bind,
-        parse_dates=True,
-        index_col="result_time",
-    )
-
-    return pd.concat([main_data, window_data], copy=False).sort_index()
+    return data.sort_index()
 
 
 def get_unique_positions(config) -> pd.Index:
@@ -206,38 +214,62 @@ def _extract_by_result_type(df: pd.DataFrame) -> pd.Series:
 
 
 def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
+    """
+    Load data from datastore and wrap it in an SaQC object.
+
+    Notes
+    -----
+    The window in config is defined as int or pandas.Timedelta
+    and describes the context window of data to fetch additionally.
+
+    If an integer, it defines the number of preceding observations to
+    fetch additionally, before the first unprocessed observation.
+
+    If a Timedelta, it defines an offset-window to fetch additionally
+    before the timestamp of the first unprocessed observation.
+
+    The first unprocessed observation is the earliest observation
+    which never was quality-controlled before.
+    """
     unique_pos = get_unique_positions(config)
     data = DictOfSeries(columns=unique_pos.map(position_to_varname))
+    attrs = dict.fromkeys(data.columns, {})
 
     # hint: window is the same for whole config
     window = config.loc[0, "window"]
 
-    dummy = pd.Series([], dtype=float, index=pd.DatetimeIndex([]))
+    dummy = pd.Series([], dtype=float, index=pd.DatetimeIndex([]), name='dummy')
 
     for pos, var_name in zip(unique_pos, data.columns):
         try:
             datastream = datastore.get_datastream(pos)
         except DatastreamNotFoundError:
             logging.warning(f"no datastream for position {pos}")
-            data[var_name] = dummy
+            data[var_name] = dummy.copy()
             continue
         else:
             # keep track of the source datastream for debugging etc.
             config.loc[config["position"] == pos, "datastream_name"] = datastream.name
 
-        raw = get_datastream_data(datastore, datastream, window)
-        if raw is None:
+        raw = get_unprocessed_data(datastore, datastream)
+        if raw is None or raw.empty:
             logging.info(f"no data for {datastream.name=}")
-            data[var_name] = dummy
+            data[var_name] = dummy.copy()
             continue
+
+        context = get_context_window_data(datastore, datastream, raw.index[0], window)
+        raw = pd.concat([raw, context], copy=False).sort_index()
 
         try:
             data[var_name] = _extract_by_result_type(raw)
+            attrs[var_name] = dict(context_index=context.index)
         except IndexError:
             logging.exception(f"extraction of data failed for {datastream.name=}")
             continue
 
-    return saqc.SaQC(data)
+    qc = saqc.SaQC(data)
+    qc.attrs = attrs
+    return qc
 
 
 def run_qaqc_config(data: saqc.SaQC, config: pd.DataFrame):
@@ -315,6 +347,11 @@ def _get_quality_information(history: History) -> pd.DataFrame:
     return labels
 
 
+def _remove_context_window(df: pd.DataFrame, idx: pd.Index | None = None) -> pd.DataFrame:
+    """  Drops index from dataframe; ignores non-existent labels. """
+    return df if idx is None else df.drop(idx, errors='ignore')
+
+
 def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchemyDatastore):
     # we don't want data-derivates to be uploaded.
     # So we can't use all columns from data.
@@ -324,10 +361,13 @@ def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchem
     for pos in positions:
         var = position_to_varname(pos)
         df = _get_quality_information(data._flags.history[var])
+        df = _remove_context_window(df, data.attrs[var].get('context_index'))
+        if df.empty:
+            continue
         _upload_qc_labels(datastore, pos, df)
 
 
-def update_observation(datastore: SqlAlchemyDatastore, datastream, result_time: pd.Timestamp, to_update: dict) -> None:
+def _update_observation(datastore: SqlAlchemyDatastore, datastream, result_time: pd.Timestamp, to_update: dict) -> None:
     """ todo: add this to tsm_datastore_lib.SqlAlchemyDatastore """
     # prevent cross-scripting, by disallowing 'null' and other values
     if not isinstance(result_time, pd.Timestamp):
@@ -363,7 +403,7 @@ def _upload_qc_labels(datastore, position: int, df: pd.DataFrame):
             data = dict()
         else:
             data = dict(row)
-        update_observation(store, stream, idx, {'result_quality': to_jsonb(data)})
+        _update_observation(store, stream, idx, {'result_quality': to_jsonb(data)})
 
     df.apply(update, axis=1)
     datastore.session.commit()
