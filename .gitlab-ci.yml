@@ -90,7 +90,7 @@ integration-test:
 add-feature-branch-tags:
   stage: release
   except:
-    - "main"
+    - "master"
   image:
     name: gcr.io/go-containerregistry/crane:debug
     entrypoint: [ "" ]
