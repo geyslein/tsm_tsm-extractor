@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import warnings
 
 import click
@@ -253,6 +254,9 @@ def list_available():
 
 
 if __name__ == '__main__':
+    # We don't use logging here,
+    # because it's not initialized yet
+    print(f"start: {sys.argv=}")
     warnings.filterwarnings(
         action="ignore",
         category=SAWarning,
