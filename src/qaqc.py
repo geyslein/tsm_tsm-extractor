@@ -258,6 +258,8 @@ def get_data(datastore: SqlAlchemyDatastore, config: pd.DataFrame) -> saqc.SaQC:
             continue
 
         context = get_context_window_data(datastore, datastream, raw.index[0], window)
+        c, d = len(context.index), len(raw.index)
+        logging.debug(f'fetched {d+c} ({d} data + {c} context) data points from {datastream.name=}')
         raw = pd.concat([raw, context], copy=False).sort_index()
 
         try:
@@ -358,13 +360,17 @@ def upload_qc_labels(data: saqc.SaQC, config: pd.DataFrame, datastore: SqlAlchem
     # see also: #GL25
     # https://git.ufz.de/rdm-software/timeseries-management/tsm-extractor/-/issues/25
     positions = get_unique_positions(config)
+    N = 0
     for pos in positions:
         var = position_to_varname(pos)
         df = _get_quality_information(data._flags.history[var])
         df = _remove_context_window(df, data.attrs[var].get('context_index'))
         if df.empty:
             continue
-        _upload_qc_labels(datastore, pos, df)
+        n = _upload_qc_labels(datastore, pos, df)
+        logging.debug(f"QA/QC: uploaded {n} quality labels to {config.loc[pos, 'datastream_name']}")
+        N += n
+    return N
 
 
 def _update_observation(datastore: SqlAlchemyDatastore, datastream, result_time: pd.Timestamp, to_update: dict) -> None:
@@ -372,7 +378,7 @@ def _update_observation(datastore: SqlAlchemyDatastore, datastream, result_time:
     # prevent cross-scripting, by disallowing 'null' and other values
     if not isinstance(result_time, pd.Timestamp):
         raise TypeError(type(result_time).__name__)
-    datastore.session.query(Observation).filter(
+    return datastore.session.query(Observation).filter(
         Observation.datastream == datastream,
         Observation.result_time == result_time
     ).update(to_update)
@@ -403,7 +409,10 @@ def _upload_qc_labels(datastore, position: int, df: pd.DataFrame):
             data = dict()
         else:
             data = dict(row)
-        _update_observation(store, stream, idx, {'result_quality': to_jsonb(data)})
+        return _update_observation(store, stream, idx, {'result_quality': to_jsonb(data)})
 
-    df.apply(update, axis=1)
+    if df.empty:
+        return 0
+    rowcounts = df.apply(update, axis=1)
     datastore.session.commit()
+    return rowcounts.sum()

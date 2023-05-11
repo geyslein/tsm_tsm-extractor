@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import warnings
 
 import click
@@ -165,8 +166,10 @@ def run_qaqc(target_uri, device_id, mqtt_broker, mqtt_user, mqtt_password):
     with log_on_error(f"QA/QC: running QA/QC-configuration on data failed"):
         result = qaqc.run_qaqc_config(data, config)
     with log_on_error(f"QA/QC: uploading quality labels failed"):
-        qaqc.upload_qc_labels(result, config, datastore)
-    logging.info("QA/QC: successfully run configuration; all quality labels uploaded.")
+        n = qaqc.upload_qc_labels(result, config, datastore)
+        if n:
+            logging.info(f"QA/QC: successfully uploaded {n} quality labels.")
+    logging.info("QA/QC: successfully run configuration")
 
 
 def check_mqtt_params(mqtt_broker, mqtt_user, mqtt_password):
@@ -251,6 +254,9 @@ def list_available():
 
 
 if __name__ == '__main__':
+    # We don't use logging here,
+    # because it's not initialized yet
+    print(f"start: {sys.argv=}")
     warnings.filterwarnings(
         action="ignore",
         category=SAWarning,
